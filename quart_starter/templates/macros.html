@@ -1,0 +1,42 @@
+{% macro pagination(current_page, num_pages, base_url_for) -%}
+{% if num_pages > 1 %}
+<nav>
+    <ul class="pagination justify-content-center">
+        <li class="page-item {% if current_page <= 1 %}disabled{% endif %}">
+            <a {% if current_page> 1 %}href="{{ base_url_for(p=1) }}" {% endif %}
+                class="page-link">&laquo;</a>
+        </li>
+        <li class="page-item {% if current_page <= 1 %}disabled{% endif %}">
+            <a {% if current_page> 1 %}href="{{ base_url_for(p=current_page-1) }}" {% endif %}
+                class="page-link">Previous</a>
+        </li>
+
+        {% set min_page=[1, [current_page-2, num_pages-4]|min]|max %}
+        {% set max_page=[min_page+4, num_pages]|min %}
+
+        {% for page in range(min_page, max_page+1) %}
+        <li class="page-item"><a class="page-link {% if current_page == page %}active{% endif %}"
+                href="{{ base_url_for(p=page) }}">{{ page
+                }}</a></li>
+        {% endfor %}
+
+        <li class="page-item">
+            <a class="page-link {% if max_page > num_pages %}disabled{% endif %}" {% if current_page < max_page
+                %}href="{{ base_url_for(p=current_page+1) }}" {% endif %}>Next</a>
+        </li>
+        <li class="page-item">
+            <a class="page-link {% if current_page >= num_pages %}disabled{% endif %}" {% if current_page < num_pages
+                %}href="{{ base_url_for(p=num_pages) }}" {% endif %}>&raquo;</a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+{%- endmacro %}
+
+{% macro sort_header_link(name, display_name, sort, base_url_for) -%}
+{% set reverse_name='-'+name %}
+<a href="{{ base_url_for(sort=reverse_name if sort == name else name) }}">{{ display_name }}
+    {%- if sort == name %}<i class="bi bi-caret-up-fill"></i>{% endif -%}
+    {%- if sort == reverse_name %}<i class="bi bi-caret-down-fill"></i>{% endif -%}
+</a>
+{%- endmacro %}

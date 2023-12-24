@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import List
 
 from quart_starter import enums, models, schemas

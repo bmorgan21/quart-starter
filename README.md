@@ -32,3 +32,9 @@ When you are ready to extend your application and make changes to your models, y
 This will create a new file in the migration/models directory.  At this point no changes have been made to the database.  In order to apply those changes you must run the following command:
 
 `aerich upgrade`
+
+----
+
+In order to run pylint in the context of the venv, you must use this command:
+
+`python $(which pylint) quart_starter`

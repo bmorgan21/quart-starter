@@ -4,7 +4,7 @@ from quart_schema import validate_request, validate_response
 from tortoise.transactions import atomic
 
 from quart_starter import actions, enums, schemas
-from quart_starter.lib.auth import AuthUser, Forbidden, login_required
+from quart_starter.lib.auth import Forbidden, login_required
 
 blueprint = Blueprint("post", __name__)
 

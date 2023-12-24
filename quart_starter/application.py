@@ -7,7 +7,7 @@ from markupsafe import Markup
 from quart import Quart, redirect, request, url_for
 from quart.templating import render_template
 from quart_auth import QuartAuth
-from quart_schema import QuartSchema, validate_response
+from quart_schema import QuartSchema
 from quart_schema.validation import (
     RequestSchemaValidationError,
     ResponseSchemaValidationError,

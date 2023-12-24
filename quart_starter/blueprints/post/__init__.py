@@ -1,4 +1,4 @@
-from quart import Blueprint, abort
+from quart import Blueprint
 from quart.templating import render_template
 from quart_auth import current_user
 from quart_schema import validate_querystring

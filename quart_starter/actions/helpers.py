@@ -39,6 +39,7 @@ def handle_orm_errors(func: Callable) -> Callable:
             handle_does_not_exist(error)
         except IntegrityError as error:
             handle_integrity_error(error)
+        return None
 
     @wraps(func)
     async def async_wrapper(*args, **kwargs):
@@ -48,5 +49,6 @@ def handle_orm_errors(func: Callable) -> Callable:
             handle_does_not_exist(error)
         except IntegrityError as error:
             handle_integrity_error(error)
+        return None
 
     return async_wrapper if iscoroutinefunction(func) else wrapper

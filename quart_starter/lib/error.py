@@ -3,4 +3,4 @@ class ActionError(ValueError):
         super().__init__(msg)
 
         self.loc = loc
-        self.type = type or "value_error"
+        self.type = type or "VALUE"

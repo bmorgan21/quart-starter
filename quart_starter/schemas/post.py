@@ -17,14 +17,14 @@ class PostBase(BaseModel):
 
 
 class PostIn(PostBase):
-    status: Optional[enums.PostStatusEnum] = enums.PostStatusEnum.PENDING
+    status: Optional[enums.PostStatus] = enums.PostStatus.PENDING
 
 
 class Post(BaseModel):
     id: int
     title: str
     content: str
-    status: enums.PostStatusEnum
+    status: enums.PostStatus
     created_at: datetime
     modified_at: datetime
     published_at: Optional[datetime]

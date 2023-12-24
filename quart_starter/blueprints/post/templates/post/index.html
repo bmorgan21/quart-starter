@@ -36,7 +36,7 @@
             </div>
             <div class="pb-3 mb-0 {% if not loop.last %}border-bottom {% endif %}small lh-sm flex-shrink-0">
                 <div class="text-muted text-end">
-                    {% if post.status == " published" %}
+                    {% if post.status == "published" %}
                     <strong>Published</strong><br /> {{ post.published_at|ago }}
                     {% else %}
                     <strong>Updated</strong><br /> {{ post.modified_at|ago }}
@@ -45,7 +45,9 @@
             </div>
         </div>
         {% else %}
-        No Posts Found ...
+        <div class="pt-3">
+            No Posts Found.
+        </div>
         {% endfor %}
     </div>
 

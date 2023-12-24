@@ -1,0 +1,43 @@
+from quart import Blueprint
+from quart_auth import login_user
+from quart_schema import validate_request, validate_response
+from tortoise.transactions import atomic
+
+from quart_starter import actions, enums, schemas
+from quart_starter.lib.auth import AuthUser
+from quart_starter.lib.error import ActionError
+
+blueprint = Blueprint("auth", __name__)
+
+
+@blueprint.post("/login/")
+@validate_request(schemas.LoginModel)
+@validate_response(schemas.User, 200)
+@atomic()
+async def login(data: schemas.LoginModel) -> schemas.User:
+    user = await actions.get_user(email=data.email)
+    if user and await actions.check_password(user.id, data.password):
+        if not user.auth_id:
+            user = await actions.update_user_auth_id(id=user.id)
+
+        login_user(AuthUser(user.auth_id))
+        return user
+
+    raise ActionError("invalid email or password", loc=["email", "password"])
+
+
+@blueprint.post("/signup/")
+@validate_request(schemas.SignupModel)
+@validate_response(schemas.User, 200)
+@atomic()
+async def signup(data: schemas.SignupModel) -> schemas.User:
+    role = enums.UserRole.USER
+
+    user = await actions.create_user(
+        schemas.UserIn(
+            name=data.email, email=data.email, password=data.password, role=role
+        ),
+    )
+
+    login_user(AuthUser(user.auth_id))
+    return user

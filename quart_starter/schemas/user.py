@@ -19,12 +19,12 @@ class UserBase(BaseModel):
 
 class UserIn(UserBase):
     password: Optional[str] = None
-    role: Optional[enums.UserRoleEnum] = enums.UserRoleEnum.USER
+    role: Optional[enums.UserRole] = enums.UserRole.USER
 
 
 class User(UserBase):
     id: int
-    role: enums.UserRoleEnum
+    role: enums.UserRole
 
 
 class UserFilterField(enums.EnumStr):

@@ -12,9 +12,9 @@ class Post(TimestampMixin, Model):
     id = fields.IntField(pk=True)
     title = fields.CharField(128)
     _status = fields.CharEnumField(
-        enums.PostStatusEnum,
+        enums.PostStatus,
         max_length=16,
-        default=enums.PostStatusEnum.PENDING,
+        default=enums.PostStatus.PENDING,
         source_field="status",
     )
     content = fields.TextField()
@@ -32,7 +32,7 @@ class Post(TimestampMixin, Model):
         if status != self._status:
             self._status = status
 
-            if status == enums.PostStatusEnum.PUBLISHED:
+            if status == enums.PostStatus.PUBLISHED:
                 self.published_at = dt.datetime.now(dt.timezone.utc)
             else:
                 self.published_at = None

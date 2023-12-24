@@ -1,14 +1,13 @@
-from dataclasses import dataclass
 from typing import List
 
+from .helpers import PydanticBaseModel
 
-@dataclass
-class Error:
+
+class Error(PydanticBaseModel):
     loc: List[str]
     msg: str
     type: str
 
 
-@dataclass
-class Errors:
+class Errors(PydanticBaseModel):
     errors: List[Error]

@@ -12,7 +12,7 @@ class User(Model):
     name = fields.CharField(32, null=True)
     picture = fields.TextField(null=True)
     role = fields.CharEnumField(
-        enums.UserRoleEnum, null=False, max_length=16, default=enums.UserRoleEnum.USER
+        enums.UserRole, null=False, max_length=16, default=enums.UserRole.USER
     )
 
     def __str__(self):

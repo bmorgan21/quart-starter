@@ -6,11 +6,18 @@ class EnumStr(str, Enum):
         return self.value
 
 
-class PostStatusEnum(EnumStr):
+class PostStatus(EnumStr):
     PENDING = "pending"
     PUBLISHED = "published"
 
 
-class UserRoleEnum(EnumStr):
+class UserRole(EnumStr):
     ADMIN = "admin"
     USER = "user"
+
+
+class Permission(EnumStr):
+    CREATE = "create"
+    READ = "read"
+    UPDATE = "update"
+    DELETE = "delete"

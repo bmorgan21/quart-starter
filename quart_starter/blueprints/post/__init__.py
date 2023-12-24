@@ -13,7 +13,7 @@ blueprint = Blueprint("post", __name__, template_folder="templates")
 async def index(query_args: schemas.PostQueryString):
     resultset = await actions.get_posts(
         query_args.to_query(resolves=["author"]),
-        status=enums.PostStatusEnum.PUBLISHED,
+        status=enums.PostStatus.PUBLISHED,
     )
 
     return await render_template(
@@ -34,7 +34,7 @@ async def mine(query_args: schemas.PostQueryString):
         resultset=resultset,
         tab="blog",
         subtab="mine"
-        if query_args.status == enums.PostStatusEnum.PUBLISHED
+        if query_args.status == enums.PostStatus.PUBLISHED
         else "mine-pending",
     )
 
@@ -43,7 +43,4 @@ async def mine(query_args: schemas.PostQueryString):
 async def view(id: int):
     post = await actions.get_post(id=id, resolves=["author"])
 
-    if post:
-        return await render_template("post/view.html", post=post)
-
-    abort(404)
+    return await render_template("post/view.html", post=post)

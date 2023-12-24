@@ -7,7 +7,7 @@ from markupsafe import Markup
 from quart import Quart, redirect, request, url_for
 from quart.templating import render_template
 from quart_auth import QuartAuth
-from quart_schema import QuartSchema
+from quart_schema import QuartSchema, validate_response
 from quart_schema.validation import (
     RequestSchemaValidationError,
     ResponseSchemaValidationError,
@@ -63,6 +63,20 @@ def create_app(**config_overrides):
     register_tortoise(app, config=app.config["TORTOISE_ORM"])
     register_commands(app)
 
+    # hide routes that don't have tags
+    for rule in app.url_map.iter_rules():
+        func = app.view_functions[rule.endpoint]
+
+        if not rule.endpoint.startswith("api."):
+            func.__dict__["_quart_schema_hidden"] = True
+        else:
+            tag = rule.endpoint.split(".")[1]
+            setattr(func, "_quart_schema_tag", set([tag]))
+
+            d = getattr(func, "_quart_schema_response_schemas")
+            d[400] = (schemas.Errors, None)
+            d[404] = (schemas.Error, None)
+
     @app.errorhandler(RequestSchemaValidationError)
     async def handle_request_validation_error(error):
         if error.validation_error:
@@ -107,6 +121,9 @@ def create_app(**config_overrides):
 
     @app.errorhandler(ActionError)
     async def handle_field_value_error(error):
+        if error.type == "NOT_FOUND":
+            return schemas.Error(loc=[], type="NOT_FOUND", msg=str(error)), 404
+
         return (
             schemas.Errors(
                 errors=[schemas.Error(loc=error.loc, type=error.type, msg=str(error))]
@@ -119,40 +136,21 @@ def create_app(**config_overrides):
         if request.accept_mimetypes.accept_html:
             return redirect(url_for("auth.login", r=request.url))
 
-        return (
-            schemas.Errors(
-                errors=[
-                    schemas.Error(loc=["auth_id"], type="UNAUTHORIZED", msg=str(error))
-                ]
-            ),
-            401,
-        )
+        return schemas.Error(loc=["auth_id"], type="UNAUTHORIZED", msg=str(error)), 401
 
     @app.errorhandler(Forbidden)
     async def handle_response_forbidden_error(error):
         if request.accept_mimetypes.accept_html:
             return await render_template("403.html")
 
-        return (
-            schemas.Errors(
-                errors=[
-                    schemas.Error(loc=["auth_id"], type="FORBIDDEN", msg=str(error))
-                ]
-            ),
-            403,
-        )
+        return schemas.Error(loc=["auth_id"], type="FORBIDDEN", msg=str(error)), 403
 
     @app.errorhandler(NotFound)
     async def handle_response_not_found_error(error):
         if request.accept_mimetypes.accept_html:
             return await render_template("404.html")
 
-        return (
-            schemas.Errors(
-                errors=[schemas.Error(loc=["page"], type="NOT_FOUND", msg=str(error))]
-            ),
-            404,
-        )
+        return schemas.Error(loc=["page"], type="NOT_FOUND", msg=str(error)), 404
 
     @app.template_filter(name="ago")
     def ago_filter(value, default=""):

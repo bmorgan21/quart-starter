@@ -3,10 +3,10 @@ from typing import List
 from quart_starter import enums, models, schemas
 from quart_starter.lib.error import ActionError
 
-from .helpers import handle_orm_errors
+from .helpers import conditional_set, handle_orm_errors
 
 
-def post_has_permission(
+def has_permission(
     post: schemas.Post,
     user_id: int,
     user_role: enums.UserRole,
@@ -40,7 +40,7 @@ def post_has_permission(
 
 
 @handle_orm_errors
-async def get_post(
+async def get(
     id: int = None, resolves: List[schemas.PostResolve] = None
 ) -> schemas.Post:
     post = None
@@ -56,7 +56,7 @@ async def get_post(
 
 
 @handle_orm_errors
-async def get_posts(
+async def query(
     query: schemas.PostQuery, status: str = None, author_id=None
 ) -> schemas.PostResultSet:
     qs = models.Post.all()
@@ -75,7 +75,7 @@ async def get_posts(
 
 
 @handle_orm_errors
-async def create_post(author_id: int, data: schemas.PostIn) -> schemas.Post:
+async def create(author_id: int, data: schemas.PostIn) -> schemas.Post:
     post = await models.Post.create(
         title=data.title, content=data.content, author_id=author_id
     )
@@ -87,20 +87,21 @@ async def create_post(author_id: int, data: schemas.PostIn) -> schemas.Post:
 
 
 @handle_orm_errors
-async def delete_post(id: int) -> None:
+async def delete(id: int) -> None:
     post = await models.Post.get(id=id)
     await post.delete()
 
 
 @handle_orm_errors
-async def update_post(id: int, data: schemas.PostIn) -> schemas.Post:
+async def update(id: int, data: schemas.PostPatch) -> schemas.Post:
     post = await models.Post.get(id=id)
 
-    if post:
-        post.title = data.title
-        post.content = data.content
+    conditional_set(post, "title", data.title)
+    conditional_set(post, "content", data.content)
+
+    if data.status != schemas.NOTSET:
         post.update_status(data.status)
 
-        await post.save()
+    await post.save()
 
     return schemas.Post.model_validate(post)

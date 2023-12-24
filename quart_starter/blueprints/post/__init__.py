@@ -11,7 +11,7 @@ blueprint = Blueprint("post", __name__, template_folder="templates")
 @blueprint.route("/")
 @validate_querystring(schemas.PostQueryString)
 async def index(query_args: schemas.PostQueryString):
-    resultset = await actions.get_posts(
+    resultset = await actions.post.query(
         query_args.to_query(resolves=["author"]),
         status=enums.PostStatus.PUBLISHED,
     )
@@ -24,7 +24,7 @@ async def index(query_args: schemas.PostQueryString):
 @blueprint.route("/mine")
 @validate_querystring(schemas.PostQueryString)
 async def mine(query_args: schemas.PostQueryString):
-    resultset = await actions.get_posts(
+    resultset = await actions.post.query(
         query_args.to_query(resolves=["author"]),
         author_id=await current_user.id,
     )
@@ -41,6 +41,6 @@ async def mine(query_args: schemas.PostQueryString):
 
 @blueprint.route("/<int:id>")
 async def view(id: int):
-    post = await actions.get_post(id=id, resolves=["author"])
+    post = await actions.post.get(id=id, resolves=["author"])
 
     return await render_template("post/view.html", post=post)

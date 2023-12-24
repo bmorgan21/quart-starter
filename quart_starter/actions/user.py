@@ -5,14 +5,40 @@ from typing import List
 
 import bcrypt
 
-from quart_starter import models, schemas
+from quart_starter import enums, models, schemas
 from quart_starter.lib.error import ActionError
 
-from .helpers import handle_orm_errors
+from .helpers import conditional_set, handle_orm_errors
+
+
+def has_permission(
+    user: schemas.User,
+    user_id: int,
+    user_role: enums.UserRole,
+    permission: enums.Permission,
+) -> bool:
+    if permission == enums.Permission.CREATE:
+        return True
+
+    if permission == enums.Permission.READ:
+        if user_role == enums.UserRole.ADMIN:
+            return True
+        return user_id == user.id
+
+    if permission == enums.Permission.UPDATE:
+        if user_role == enums.UserRole.ADMIN:
+            return True
+        return user_id == user.id
+
+    if permission == enums.Permission.DELETE:
+        if user_role == enums.UserRole.ADMIN:
+            return True
+
+    return False
 
 
 @handle_orm_errors
-async def get_user(
+async def get(
     id: int = None,
     email: str = None,
     auth_id: str = None,
@@ -35,7 +61,7 @@ async def get_user(
 
 
 @handle_orm_errors
-async def get_users(query: schemas.UserQuery) -> schemas.UserResultSet:
+async def query(query: schemas.UserQuery) -> schemas.UserResultSet:
     queryset, pagination = await query.queryset(models.User)
 
     return schemas.UserResultSet(
@@ -45,7 +71,7 @@ async def get_users(query: schemas.UserQuery) -> schemas.UserResultSet:
 
 
 @handle_orm_errors
-async def create_user(data: schemas.UserIn) -> schemas.User:
+async def create(data: schemas.UserCreate) -> schemas.User:
     md5_hash = hashlib.md5(data.email.encode()).hexdigest()
     gravatar = f"https://www.gravatar.com/avatar/{md5_hash}"
 
@@ -64,13 +90,26 @@ async def create_user(data: schemas.UserIn) -> schemas.User:
 
 
 @handle_orm_errors
-async def delete_user(id: int) -> None:
+async def delete(id: int) -> None:
     user = await models.User.get(id=id)
     await user.delete()
 
 
 @handle_orm_errors
-async def update_user_auth_id(id: int) -> schemas.User:
+async def update(id: int, data: schemas.UserPatch) -> schemas.User:
+    user = await models.User.get(id=id)
+
+    conditional_set(user, "name", data.name)
+    conditional_set(user, "email", data.email)
+    conditional_set(user, "picture", data.picture)
+
+    await user.save()
+
+    return schemas.User.model_validate(user)
+
+
+@handle_orm_errors
+async def update_auth_id(id: int) -> schemas.User:
     user = await models.User.get(id=id)
     user.auth_id = str(uuid.uuid4())
     await user.save()

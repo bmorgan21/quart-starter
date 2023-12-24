@@ -13,3 +13,6 @@ def parse_list(v):
 class BaseModel(PydanticBaseModel):
     class Config:
         from_attributes = True
+
+
+NOTSET = object()

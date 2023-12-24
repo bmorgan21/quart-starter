@@ -4,26 +4,32 @@ from pydantic import validator
 
 from quart_starter import enums
 
-from .helpers import BaseModel, parse_list
+from .helpers import NOTSET, BaseModel, parse_list
 from .pagination import PageInfo, Pagination
 from .query import Query
 
 
 class UserBase(BaseModel):
-    auth_id: Optional[str] = None
     name: str
     email: str
     status: Optional[str] = None
     picture: Optional[str] = None
 
 
-class UserIn(UserBase):
+class UserCreate(UserBase):
     password: Optional[str] = None
     role: Optional[enums.UserRole] = enums.UserRole.USER
 
 
+class UserPatch(BaseModel):
+    name: Optional[str] = NOTSET
+    email: Optional[str] = NOTSET
+    picture: Optional[str] = NOTSET
+
+
 class User(UserBase):
     id: int
+    auth_id: str
     role: enums.UserRole
 
 

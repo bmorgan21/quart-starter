@@ -15,28 +15,28 @@ blueprint = Blueprint("post", __name__)
 @atomic()
 @login_required
 async def create(data: schemas.PostIn) -> schemas.Post:
-    if not actions.post_has_permission(
+    if not actions.post.has_permission(
         None, await current_user.id, await current_user.role, enums.Permission.CREATE
     ):
         raise Forbidden()
 
-    return await actions.create_post(await current_user.id, data)
+    return await actions.post.create(await current_user.id, data)
 
 
-@blueprint.put("/<int:id>/")
-@validate_request(schemas.PostIn)
+@blueprint.patch("/<int:id>/")
+@validate_request(schemas.PostPatch)
 @validate_response(schemas.Post, 200)
 @atomic()
 @login_required
-async def update(id: int, data: schemas.PostIn) -> schemas.Post:
-    post = await actions.get_post(id=id)
+async def patch(id: int, data: schemas.PostPatch) -> schemas.Post:
+    post = await actions.post.get(id=id)
 
-    if not actions.post_has_permission(
+    if not actions.post.has_permission(
         post, await current_user.id, await current_user.role, enums.Permission.UPDATE
     ):
         raise Forbidden()
 
-    return await actions.update_post(id, data)
+    return await actions.post.update(id, data)
 
 
 @blueprint.delete("/<int:id>/")
@@ -44,13 +44,13 @@ async def update(id: int, data: schemas.PostIn) -> schemas.Post:
 @atomic()
 @login_required
 async def delete(id: int) -> schemas.DeleteConfirmed:
-    post = await actions.get_post(id=id)
+    post = await actions.post.get(id=id)
 
-    if not actions.post_has_permission(
+    if not actions.post.has_permission(
         post, await current_user.id, await current_user.role, enums.Permission.DELETE
     ):
         raise Forbidden()
 
-    await actions.delete_post(id)
+    await actions.post.delete(id)
 
     return schemas.DeleteConfirmed(id=id)

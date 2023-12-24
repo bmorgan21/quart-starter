@@ -1,11 +1,12 @@
 import re
 from functools import wraps
 from inspect import iscoroutinefunction
-from typing import Callable
+from typing import Any, Callable
 
 from asyncpg.exceptions import UniqueViolationError
 from tortoise.exceptions import DoesNotExist, IntegrityError
 
+from quart_starter import schemas
 from quart_starter.lib.error import ActionError
 
 unique_violation_detail_re = re.compile(
@@ -52,3 +53,8 @@ def handle_orm_errors(func: Callable) -> Callable:
         return None
 
     return async_wrapper if iscoroutinefunction(func) else wrapper
+
+
+def conditional_set(obj: Any, attr: str, value: Any) -> bool:
+    if value != schemas.NOTSET:
+        setattr(obj, attr, value)

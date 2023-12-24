@@ -5,7 +5,7 @@ from pydantic import constr, validator
 
 from quart_starter import enums
 
-from .helpers import BaseModel, parse_list, remove_queryset
+from .helpers import NOTSET, BaseModel, parse_list, remove_queryset
 from .pagination import PageInfo, Pagination
 from .query import Query
 from .user import User
@@ -18,6 +18,12 @@ class PostBase(BaseModel):
 
 class PostIn(PostBase):
     status: Optional[enums.PostStatus] = enums.PostStatus.PENDING
+
+
+class PostPatch(BaseModel):
+    title: Optional[str] = NOTSET
+    content: Optional[str] = NOTSET
+    status: Optional[enums.PostStatus] = NOTSET
 
 
 class Post(BaseModel):

@@ -24,7 +24,7 @@ class AuthUser(_AuthUser):
 
     async def _resolve(self):
         if not self._resolved:
-            self._user = await actions.get_user(auth_id=self.auth_id)
+            self._user = await actions.user.get(auth_id=self.auth_id)
             self._resolved = True
 
     async def __getattr__(self, name):

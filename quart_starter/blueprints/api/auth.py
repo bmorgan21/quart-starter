@@ -15,10 +15,10 @@ blueprint = Blueprint("auth", __name__)
 @validate_response(schemas.User, 200)
 @atomic()
 async def login(data: schemas.LoginModel) -> schemas.User:
-    user = await actions.get_user(email=data.email)
-    if user and await actions.check_password(user.id, data.password):
+    user = await actions.user.get(email=data.email)
+    if user and await actions.user.check_password(user.id, data.password):
         if not user.auth_id:
-            user = await actions.update_user_auth_id(id=user.id)
+            user = await actions.user.update_auth_id(id=user.id)
 
         login_user(AuthUser(user.auth_id))
         return user
@@ -31,12 +31,8 @@ async def login(data: schemas.LoginModel) -> schemas.User:
 @validate_response(schemas.User, 200)
 @atomic()
 async def signup(data: schemas.SignupModel) -> schemas.User:
-    role = enums.UserRole.USER
-
-    user = await actions.create_user(
-        schemas.UserIn(
-            name=data.email, email=data.email, password=data.password, role=role
-        ),
+    user = await actions.user.create(
+        schemas.UserCreate(name=data.email, email=data.email, password=data.password),
     )
 
     login_user(AuthUser(user.auth_id))

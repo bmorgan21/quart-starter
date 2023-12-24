@@ -31,7 +31,6 @@ class Post(TimestampMixin, Model):
     def update_status(self, status):
         if status != self._status:
             self._status = status
-
             if status == enums.PostStatus.PUBLISHED:
                 self.published_at = dt.datetime.now(dt.timezone.utc)
             else:

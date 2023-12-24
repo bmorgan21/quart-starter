@@ -13,7 +13,7 @@ from .user import User
 
 class PostBase(BaseModel):
     title: constr(strip_whitespace=True, min_length=1, max_length=128)
-    content: str
+    content: constr(strip_whitespace=True, min_length=1)
 
 
 class PostIn(PostBase):
@@ -34,6 +34,7 @@ class Post(BaseModel):
     created_at: datetime
     modified_at: datetime
     published_at: Optional[datetime]
+    viewed: int
 
     author_id: int
     author: Optional[User]

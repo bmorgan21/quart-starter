@@ -19,6 +19,7 @@ class Post(TimestampMixin, Model):
     )
     content = fields.TextField()
     published_at = fields.DatetimeField(null=True)
+    viewed = fields.IntField(default=0)
 
     author: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
         "models.User", related_name="documents"

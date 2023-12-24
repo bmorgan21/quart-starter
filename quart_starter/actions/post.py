@@ -1,5 +1,7 @@
 from typing import List
 
+from tortoise.expressions import F
+
 from quart_starter import enums, models, schemas
 from quart_starter.lib.error import ActionError
 
@@ -105,3 +107,8 @@ async def update(id: int, data: schemas.PostPatch) -> schemas.Post:
     await post.save()
 
     return schemas.Post.model_validate(post)
+
+
+@handle_orm_errors
+async def update_viewed(id: int) -> None:
+    await models.Post.filter(id=id).update(viewed=F("viewed") + 1)

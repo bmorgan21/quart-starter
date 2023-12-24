@@ -30,6 +30,20 @@ def relative_url_for(**params):
     return url_for(request.url_rule.endpoint, **request.view_args, **query_args)
 
 
+def utc_to_local(value):
+    offset = None
+    if "tz" in request.cookies:
+        try:
+            offset = int(request.cookies["tz"])
+        except ValueError:
+            offset = None
+
+    if offset:
+        return (value - dt.timedelta(seconds=offset)).replace(tzinfo=None)
+
+    return value
+
+
 def register_blueprints(app):
     # pylint: disable=import-outside-toplevel
     from quart_starter.blueprints.api import blueprint as api_blueprint
@@ -158,6 +172,7 @@ def create_app(**config_overrides):
             now = dt.datetime.now(dt.timezone.utc)
             delta = now - value
             if delta > dt.timedelta(days=1):
+                value = utc_to_local(value)
                 return value.strftime("%b %d, %Y")
             return humanize.naturaltime(delta)
         return default
@@ -165,6 +180,11 @@ def create_app(**config_overrides):
     @app.template_filter(name="markdown")
     def markdown_filter(value):
         return Markup(markdown.markdown(value))
+
+    @app.template_filter(name="format_datetime")
+    def format_datetime(value, format="%m/%d/%Y %H:%M:%S"):
+        value = utc_to_local(value)
+        return value.strftime(format)
 
     @app.context_processor
     def add_context():

@@ -1,12 +1,41 @@
 {% extends "base.html" %}
 
+{% block head %}
+<style>
+    .subhead::first-letter {
+        initial-letter: 2;
+        margin-right: 5px;
+        color: orange;
+    }
+</style>
+{% endblock head %}
+
+
 {% block content %}
-<h1>{{ post.title }}</h1>
-<div>
-    <img width="32" height="32" src="{{ post.author.picture }}" class="rounded me-2 d-shrink-0" />
-    {{ post.author.name }}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('.index') }}">Blog</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Library</li>
+    </ol>
+</nav>
+
+<div class="pb-2">
+    {% if can_edit %}
+    <a class="btn btn-primary btn-sm float-end" href="{{ url_for('.update', id=post.id) }}"><i class="bi bi-pencil"></i>
+        Edit Post</a>
+    {% endif %}
+    <h3>{{ post.title }}</h3>
+    <div class="small mb-2">{% if post.status == 'published' %}<span class="text-muted">Published</span> {{
+        post.published_at|ago }} &bullet; {% endif %}<span class="text-muted">Modified</span> {{
+        post.modified_at|format_datetime('%-I:%M %p, %a %B %-d, %Y') }} &bullet; <span class="text-muted">Viewed</span>
+        {{ post.viewed }}</div>
+
+    <div class="text-muted">
+        <img width="60" height="60" src="{{ post.author.picture }}" class="rounded-circle me-2 d-shrink-0" />
+        By {{ post.author.name }}
+    </div>
 </div>
-<div>
+<div class="mt-3 subhead">
     {{ post.content|markdown }}
 </div>
 {% endblock content %}

@@ -77,7 +77,7 @@ async function handleSubmit(event, callback) {
 
     const form = event.target;
     const status = form.querySelector('.status');
-    const data = form2js(form, '.', true, nodeCallback);
+    const data = form2js(form, '.', false, nodeCallback);
 
     startLoading(form);
 

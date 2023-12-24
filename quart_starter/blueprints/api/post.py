@@ -28,7 +28,7 @@ async def create(data: schemas.PostIn) -> schemas.Post:
 @validate_response(schemas.Post, 200)
 @atomic()
 @login_required
-async def patch(id: int, data: schemas.PostPatch) -> schemas.Post:
+async def update(id: int, data: schemas.PostPatch) -> schemas.Post:
     post = await actions.post.get(id=id)
 
     if not actions.post.has_permission(

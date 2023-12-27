@@ -1,3 +1,5 @@
+{% import "macros.html" as macros %}
+
 <!doctype html>
 <html lang="en">
 
@@ -51,7 +53,8 @@
                 <div class="dropdown">
                     <a class="dropdown-toggle text-decoration-none text-white d-flex align-items-center" href="#"
                         id="profile-dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-person-circle fs-4 me-2"></i> {{ current_user.name }}
+                        {{ macros.user_icon(current_user, 32, "me-2")}}
+                        {{ current_user.name }}
                     </a>
                     <ul class="dropdown-menu dropdown-menu-lg-end" aria-labelledby="navbarDropdown">
                         <li><a class="dropdown-item" href="#">Profile</a></li>

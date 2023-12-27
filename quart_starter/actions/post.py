@@ -49,7 +49,7 @@ async def get(
     if id:
         post = await models.Post.get(id=id)
     else:
-        raise ActionError("missing lookup key", loc=[], type="NOT_FOUND")
+        raise ActionError("missing lookup key", type="not_found")
 
     if resolves:
         await post.fetch_related(*resolves)
@@ -59,7 +59,7 @@ async def get(
 
 @handle_orm_errors
 async def query(
-    query: schemas.PostQuery, status: str = None, author_id=None
+    q: schemas.PostQuery, status: str = None, author_id=None
 ) -> schemas.PostResultSet:
     qs = models.Post.all()
     if status:
@@ -68,7 +68,7 @@ async def query(
     if author_id:
         qs = qs.filter(author_id=author_id)
 
-    queryset, pagination = await query.queryset(qs)
+    queryset, pagination = await q.queryset(qs)
 
     return schemas.PostResultSet(
         pagination=pagination,
@@ -77,7 +77,7 @@ async def query(
 
 
 @handle_orm_errors
-async def create(author_id: int, data: schemas.PostIn) -> schemas.Post:
+async def create(author_id: int, data: schemas.PostCreate) -> schemas.Post:
     post = await models.Post.create(
         title=data.title, content=data.content, author_id=author_id
     )

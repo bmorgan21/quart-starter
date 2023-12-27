@@ -16,7 +16,7 @@ unique_violation_detail_re = re.compile(
 
 def handle_orm_errors(func: Callable) -> Callable:
     def handle_does_not_exist(error):
-        raise ActionError("Entity Not Found", loc=[], type="NOT_FOUND") from error
+        raise ActionError("Entity Not Found", type="does_not_exist") from error
 
     def handle_integrity_error(error):
         if isinstance(error.args[0], UniqueViolationError):
@@ -26,11 +26,11 @@ def handle_orm_errors(func: Callable) -> Callable:
                 d = m.groupdict()
                 raise ActionError(
                     f"{d['values']} already exists",
-                    loc=[x.strip() for x in d["columns"].split(",")],
-                    type="INTEGRITY",
+                    loc=[x.strip() for x in d["columns"].split(",")][0],
+                    type="integrity",
                 ) from error
 
-        raise ActionError(str(error), loc=[], type="INTEGRITY")
+        raise ActionError(str(error), type="integrity")
 
     @wraps(func)
     def wrapper(*args, **kwargs):

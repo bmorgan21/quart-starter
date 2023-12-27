@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import 'macros.html' as macros %}
 
 {% block head %}
 <style>
@@ -31,7 +32,7 @@
         {{ post.viewed }}</div>
 
     <div class="text-muted">
-        <img width="60" height="60" src="{{ post.author.picture }}" class="rounded-circle me-2 d-shrink-0" />
+        {{ macros.user_icon(post.author, 60, class="me-2") }}
         By {{ post.author.name }}
     </div>
 </div>

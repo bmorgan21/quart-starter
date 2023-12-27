@@ -16,6 +16,11 @@ class UserRole(EnumStr):
     USER = "user"
 
 
+class UserStatus(EnumStr):
+    PENDING = "pending"
+    ACTIVE = "active"
+
+
 class Permission(EnumStr):
     CREATE = "create"
     READ = "read"

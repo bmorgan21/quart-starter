@@ -10,17 +10,17 @@ blueprint = Blueprint("post", __name__)
 
 
 @blueprint.post("/")
-@validate_request(schemas.PostIn)
-@validate_response(schemas.Post, 200)
+@validate_request(schemas.PostCreate)
+@validate_response(schemas.Post, 201)
 @atomic()
 @login_required
-async def create(data: schemas.PostIn) -> schemas.Post:
+async def create(data: schemas.PostCreate) -> schemas.Post:
     if not actions.post.has_permission(
         None, await current_user.id, await current_user.role, enums.Permission.CREATE
     ):
         raise Forbidden()
 
-    return await actions.post.create(await current_user.id, data)
+    return await actions.post.create(await current_user.id, data), 201
 
 
 @blueprint.patch("/<int:id>/")

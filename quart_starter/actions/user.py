@@ -52,7 +52,7 @@ async def get(
     elif auth_id:
         user = await models.User.get(auth_id=auth_id)
     else:
-        raise ActionError("missing lookup key", loc=[], type="NOT_FOUND")
+        raise ActionError("missing lookup key", type="not_found")
 
     if resolves:
         await user.fetch_related(*resolves)
@@ -61,8 +61,8 @@ async def get(
 
 
 @handle_orm_errors
-async def query(query: schemas.UserQuery) -> schemas.UserResultSet:
-    queryset, pagination = await query.queryset(models.User)
+async def query(q: schemas.UserQuery) -> schemas.UserResultSet:
+    queryset, pagination = await q.queryset(models.User)
 
     return schemas.UserResultSet(
         pagination=pagination,

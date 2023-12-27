@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import List, Optional, Union
 
-from pydantic import constr, validator
+from pydantic import StringConstraints, field_validator
+from typing_extensions import Annotated
 
 from quart_starter import enums
 
@@ -10,27 +11,28 @@ from .pagination import PageInfo, Pagination
 from .query import Query
 from .user import User
 
+TITLE_VALIDATOR = Annotated[str, StringConstraints(min_length=5)]
+CONTENT_VALIDATOR = str
+STATUS_VALIDATOR = enums.PostStatus
 
-class PostBase(BaseModel):
-    title: constr(strip_whitespace=True, min_length=1, max_length=128)
-    content: constr(strip_whitespace=True, min_length=1)
 
-
-class PostIn(PostBase):
-    status: Optional[enums.PostStatus] = enums.PostStatus.PENDING
+class PostCreate(BaseModel):
+    title: TITLE_VALIDATOR
+    content: CONTENT_VALIDATOR
+    status: STATUS_VALIDATOR = enums.PostStatus.PENDING
 
 
 class PostPatch(BaseModel):
-    title: Optional[str] = NOTSET
-    content: Optional[str] = NOTSET
-    status: Optional[enums.PostStatus] = NOTSET
+    title: TITLE_VALIDATOR = NOTSET
+    content: CONTENT_VALIDATOR = NOTSET
+    status: STATUS_VALIDATOR = NOTSET
 
 
 class Post(BaseModel):
     id: int
     title: str
     content: str
-    status: enums.PostStatus
+    status: str
     created_at: datetime
     modified_at: datetime
     published_at: Optional[datetime]
@@ -39,7 +41,7 @@ class Post(BaseModel):
     author_id: int
     author: Optional[User]
 
-    _remove_queryset = validator("author", allow_reuse=True, pre=True)(remove_queryset)
+    _remove_queryset = field_validator("author", mode="before")(remove_queryset)
 
 
 class PostFilterField(enums.EnumStr):
@@ -94,9 +96,7 @@ class PostQueryString(BaseModel):
     p: Optional[int] = 1
     resolves: Optional[List[PostResolve]] = []
 
-    _parse_list = validator("id__in", "resolves", allow_reuse=True, pre=True)(
-        parse_list
-    )
+    _parse_list = field_validator("id__in", "resolves", mode="before")(parse_list)
 
     def to_query(self, resolves=None):
         filters = []

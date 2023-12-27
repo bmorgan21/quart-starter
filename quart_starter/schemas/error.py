@@ -1,12 +1,13 @@
-from typing import List
+from typing import Any, List, Optional
 
 from .helpers import PydanticBaseModel
 
 
 class Error(PydanticBaseModel):
-    loc: List[str]
+    loc: str
     msg: str
     type: str
+    input: Optional[Any] = None
 
 
 class Errors(PydanticBaseModel):

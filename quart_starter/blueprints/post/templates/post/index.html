@@ -28,7 +28,7 @@
     <div class="my-3 p-3 pt-0 bg-body rounded shadow-sm">
         {% for post in resultset.posts %}
         <div class="d-flex text-body-secondary pt-3">
-            <img width="32" height="32" src="{{ post.author.picture }}" class="rounded me-2 d-shrink-0" />
+            {{ macros.user_icon(post.author, 32, "me-2")}}
             <div class="pb-3 mb-0 small lh-sm {% if not loop.last %}border-bottom {% endif %}flex-grow-1">
                 <div class="d-flex justify-content-between">
                     <a class="fw-bold" href="{{ url_for('post.view', id=post.id) }}">{{ post.title }}</a>

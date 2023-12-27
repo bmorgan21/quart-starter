@@ -1,21 +1,30 @@
-from pydantic import EmailStr, constr, validator
+from typing import Optional
 
-from .helpers import BaseModel
+from pydantic import ValidationInfo, field_validator
+
+from .helpers import BaseModel, EmailStr, PasswordStr, PydanticValueError
+
+EMAIL_VALIDATOR = EmailStr
+PASSWORD_VALIDATOR = PasswordStr
 
 
 class LoginModel(BaseModel):
-    email: EmailStr
-    password: constr(min_length=5, strip_whitespace=True)
+    email: str
+    password: str
 
 
 class SignupModel(BaseModel):
-    email: EmailStr
-    password: constr(min_length=5, strip_whitespace=True)
-    confirm_password: constr(min_length=5, strip_whitespace=True)
+    email: EMAIL_VALIDATOR
+    password: PASSWORD_VALIDATOR
+    confirm_password: Optional[str]
 
-    @validator("confirm_password")
+    @field_validator("confirm_password")
     @classmethod
-    def passwords_match(cls, v, values):
-        if "password" in values and v != values["password"]:
-            raise ValueError("passwords do not match")
-        return v
+    def passwords_match(cls, value: str, info: ValidationInfo):
+        password = info.data.get("password")
+        confirm_password = value
+
+        if password is not None and password != confirm_password:
+            raise PydanticValueError("Passwords do not match", type="password")
+
+        return value

@@ -4,6 +4,7 @@ import urllib.parse
 import humanize
 import markdown
 from markupsafe import Markup
+from pydantic_core import ValidationError
 from quart import Quart, redirect, request, url_for
 from quart.templating import render_template
 from quart_auth import QuartAuth
@@ -93,12 +94,15 @@ def create_app(**config_overrides):
 
     @app.errorhandler(RequestSchemaValidationError)
     async def handle_request_validation_error(error):
-        if error.validation_error:
+        if isinstance(error.validation_error, ValidationError):
             return (
                 schemas.Errors(
                     errors=[
                         schemas.Error(
-                            loc=x.get("loc"), type=x.get("type"), msg=x["msg"]
+                            loc=".".join(x.get("loc")),
+                            type=x.get("type"),
+                            msg=x["msg"],
+                            input=x.get("input"),
                         )
                         for x in error.validation_error.errors()
                     ]
@@ -107,19 +111,22 @@ def create_app(**config_overrides):
             )
         return (
             schemas.Errors(
-                errors=[schemas.Error(loc=[], type="VALIDATION", msg=str(error))]
+                errors=[schemas.Error(loc="page", type="VALIDATION", msg=str(error))]
             ),
             400,
         )
 
     @app.errorhandler(ResponseSchemaValidationError)
     async def handle_response_validation_error(error):
-        if error.validation_error:
+        if isinstance(error.validation_error, ValidationError):
             return (
                 schemas.Errors(
                     errors=[
                         schemas.Error(
-                            loc=x.get("loc"), type=x.get("type"), msg=x["msg"]
+                            loc=".".join(x.get("loc")),
+                            type=x.get("type"),
+                            msg=x["msg"],
+                            input=x.get("input"),
                         )
                         for x in error.validation_error.errors()
                     ]
@@ -128,15 +135,18 @@ def create_app(**config_overrides):
             )
         return (
             schemas.Errors(
-                errors=[schemas.Error(loc=[], type="VALIDATION", msg=str(error))]
+                errors=[schemas.Error(loc="page", type="VALIDATION", msg=str(error))]
             ),
             400,
         )
 
     @app.errorhandler(ActionError)
     async def handle_field_value_error(error):
-        if error.type == "NOT_FOUND":
-            return schemas.Error(loc=[], type="NOT_FOUND", msg=str(error)), 404
+        if error.type in ("action_error.not_found", "action_error.does_not_exist"):
+            return (
+                schemas.Error(loc=error.loc, type=error.type, msg=str(error)),
+                404,
+            )
 
         return (
             schemas.Errors(
@@ -150,21 +160,30 @@ def create_app(**config_overrides):
         if request.accept_mimetypes.accept_html:
             return redirect(url_for("auth.login", r=request.url))
 
-        return schemas.Error(loc=["auth_id"], type="UNAUTHORIZED", msg=str(error)), 401
+        return (
+            schemas.Error(loc="auth_id", type="auth.unauthorized", msg=str(error)),
+            401,
+        )
 
     @app.errorhandler(Forbidden)
     async def handle_response_forbidden_error(error):
         if request.accept_mimetypes.accept_html:
             return await render_template("403.html")
 
-        return schemas.Error(loc=["auth_id"], type="FORBIDDEN", msg=str(error)), 403
+        return (
+            schemas.Error(loc="auth_id", type="auth.forbidden", msg=str(error)),
+            403,
+        )
 
     @app.errorhandler(NotFound)
     async def handle_response_not_found_error(error):
         if request.accept_mimetypes.accept_html:
             return await render_template("404.html")
 
-        return schemas.Error(loc=["page"], type="NOT_FOUND", msg=str(error)), 404
+        return (
+            schemas.Error(loc="page", type="NOT_FOUND", msg=str(error)),
+            404,
+        )
 
     @app.template_filter(name="ago")
     def ago_filter(value, default=""):

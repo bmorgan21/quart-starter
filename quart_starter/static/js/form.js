@@ -105,38 +105,41 @@ async function handleSubmit(event, callback) {
                 if (Object.hasOwn(data, 'errors')) {
                     const ul = document.createElement('ul');
                     data.errors.forEach((value) => {
-                        value.loc.forEach((name) => {
-                            const input = form.querySelector('[name="' + name + '"]');
-                            if (input) {
-                                input.classList.add('is-invalid');
+                        const input = form.querySelector('[name="' + value.loc + '"]');
+                        if (input) {
+                            input.classList.add('is-invalid');
 
-                                const div = input.parentElement;
+                            const div = input.parentElement;
+                            const error = document.createElement('div');
+                            error.classList.add('invalid-feedback');
+                            error.innerHTML = value.msg;
+                            div.appendChild(error);
+                        } else {
+                            const element = document.getElementById(value.loc);
+                            if (element) {
                                 const error = document.createElement('div');
                                 error.classList.add('invalid-feedback');
-                                error.innerHTML = value.msg;
-                                div.appendChild(error);
-                            } else {
-                                const element = document.getElementById(name);
-                                if (element) {
-                                    const error = document.createElement('div');
-                                    error.classList.add('invalid-feedback');
-                                    error.classList.add('d-block');
-                                    error.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> ' + value.msg;
+                                error.classList.add('d-block');
+                                error.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> ' + value.msg;
 
-                                    if (element.classList.contains('input')) {
-                                        const div = element.parentElement;
-                                        div.appendChild(error);
-                                    } else {
-                                        element.appendChild(error);
-                                    }
+                                if (element.classList.contains('input')) {
+                                    const div = element.parentElement;
+                                    div.appendChild(error);
                                 } else {
-                                    const li = document.createElement('li');
-                                    li.innerHTML = "[" + value.loc + "] " + value.msg;
-                                    ul.appendChild(li)
+                                    element.appendChild(error);
                                 }
+                            } else {
+                                const li = document.createElement('li');
+                                if (value.loc != '') {
+                                    li.innerHTML = "[" + value.loc + "] " + value.msg;
+                                } else {
+                                    li.innerHTML = value.msg;
+                                }
+                                ul.appendChild(li)
                             }
-                        });
+                        }
                     });
+
                     if (status) {
                         status.innerHTML = "Correct the errors above.";
                         status.appendChild(ul);

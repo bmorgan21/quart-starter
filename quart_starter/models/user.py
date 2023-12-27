@@ -8,11 +8,13 @@ class User(Model):
     auth_id = fields.CharField(64, null=True, unique=True)
     email = fields.CharField(128, unique=True)
     hashed_password = fields.BinaryField(null=True)
-    status = fields.CharField(20, default="active")
+    status = fields.CharEnumField(
+        enums.UserStatus, max_length=20, default=enums.UserStatus.ACTIVE
+    )
     name = fields.CharField(32, null=True)
     picture = fields.TextField(null=True)
     role = fields.CharEnumField(
-        enums.UserRole, null=False, max_length=16, default=enums.UserRole.USER
+        enums.UserRole, max_length=16, default=enums.UserRole.USER
     )
 
     def __str__(self):

@@ -20,7 +20,7 @@
         </li>
         <li class="nav-item">
             <a class="nav-link {% if subtab == 'mine-pending' %}active{% endif %}"
-                href="{{ url_for('post.mine', status='pending', sort='-created_at__-id') }}">My Pending
+                href="{{ url_for('post.mine', status='pending') }}">My Pending
                 Posts</a>
         </li>
     </ul>

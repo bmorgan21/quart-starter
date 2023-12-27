@@ -84,8 +84,8 @@ class PostQueryStringSort(enums.EnumStr):
     TITLE_DESC = "-title__id"
     CREATED_AT_ASC = "created_at__id"
     CREATED_AT_DESC = "-created_at__-id"
-    PUBLISHED_AT_ASC = "published_at__id"
-    PUBLISHED_AT_DESC = "-published_at__-id"
+    PUBLISHED_AT_ASC = "published_at__created_at__id"
+    PUBLISHED_AT_DESC = "-published_at__-created_at__-id"
 
 
 class PostQueryString(BaseModel):

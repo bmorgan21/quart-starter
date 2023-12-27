@@ -7,7 +7,7 @@ from markupsafe import Markup
 from pydantic_core import ValidationError
 from quart import Quart, redirect, request, url_for
 from quart.templating import render_template
-from quart_auth import QuartAuth
+from quart_auth import QuartAuth, Unauthorized
 from quart_schema import QuartSchema
 from quart_schema.validation import (
     RequestSchemaValidationError,
@@ -18,7 +18,7 @@ from werkzeug.exceptions import NotFound
 
 from quart_starter import schemas, settings
 from quart_starter.command import register_commands
-from quart_starter.lib.auth import AuthUser, Forbidden, Unauthorized
+from quart_starter.lib.auth import AuthUser, Forbidden
 from quart_starter.lib.error import ActionError
 from quart_starter.lib.middleware import ProxyMiddleware
 from quart_starter.log import register_logging
@@ -52,6 +52,7 @@ def register_blueprints(app):
     from quart_starter.blueprints.auth_google import blueprint as auth_google_blueprint
     from quart_starter.blueprints.marketing import blueprint as marketing_blueprint
     from quart_starter.blueprints.post import blueprint as post_blueprint
+    from quart_starter.blueprints.user import blueprint as user_blueprint
 
     # pylint: enable=import-outside-toplevel
 
@@ -60,6 +61,7 @@ def register_blueprints(app):
     app.register_blueprint(auth_google_blueprint, url_prefix="/auth/google")
     app.register_blueprint(marketing_blueprint)
     app.register_blueprint(post_blueprint, url_prefix="/post")
+    app.register_blueprint(user_blueprint, url_prefix="/user")
 
 
 def create_app(**config_overrides):
@@ -204,6 +206,12 @@ def create_app(**config_overrides):
     def format_datetime(value, format="%m/%d/%Y %H:%M:%S"):
         value = utc_to_local(value)
         return value.strftime(format)
+
+    @app.template_filter(name="none_to_empty")
+    def none_to_empty(value):
+        if value is None:
+            return ""
+        return value
 
     @app.context_processor
     def add_context():

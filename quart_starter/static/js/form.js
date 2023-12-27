@@ -42,33 +42,47 @@ function nodeCallback(node) {
 function defaultFormCallback(form, data) {
     const status = form.querySelector('.status');
     const rInput = form.querySelector('input[name="r"]');
+    let target = form.target;
+    if (!target) {
+        target = '_self';
+    }
+
+    console.log(rInput, target);
 
     if (rInput && rInput.value) {
         const url = rInput.value.replace('{ID}', data['id']);
 
-        const modal = form.closest('.modal');
-        if (modal) {
-            fetch(url, {
-                method: 'GET'
-            }).then(response => {
-                if (response.ok) {
-                    response.text().then(data => {
-                        const dialog = modal.querySelector('.modal-dialog');
-                        dialog.innerHTML = data;
-                        bind(dialog);
-                    });
-                }
-            });
-        } else {
+        if (target == '_top') {
             window.location.replace(url);
+        } else {
+            const modal = form.closest('.modal');
+            if (modal) {
+                fetch(url, {
+                    method: 'GET'
+                }).then(response => {
+                    if (response.ok) {
+                        response.text().then(data => {
+                            const dialog = modal.querySelector('.modal-dialog');
+                            dialog.innerHTML = data;
+                            bind(dialog);
+                        });
+                    }
+                });
+            } else {
+                window.location.replace(url);
+            }
         }
     } else {
-        stopLoading(form);
-        clearValidation(form);
-        if (status) {
-            status.innerHTML = "Thanks for your submission!";
+        if (target == '_top') {
+            window.location.reload();
+        } else {
+            stopLoading(form);
+            clearValidation(form);
+            if (status) {
+                status.innerHTML = "Thanks for your submission!";
+            }
+            form.reset()
         }
-        form.reset()
     }
 }
 
@@ -142,7 +156,9 @@ async function handleSubmit(event, callback) {
 
                     if (status) {
                         status.innerHTML = "Correct the errors above.";
-                        status.appendChild(ul);
+                        if (ul.children.length > 0) {
+                            status.appendChild(ul);
+                        }
                     }
                 } else {
                     if (status) {

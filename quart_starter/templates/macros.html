@@ -52,3 +52,35 @@
 </svg>
 {% endif %}
 {%- endmacro %}
+
+{% macro text(name, obj, type="text", placeholder=None, label=None, class="mb-3") -%}
+<div class="form-floating {{ class }}">
+    <input name="{{ name }}" type="{{ type }}" class="form-control" id="floating{{ name|title }}"
+        placeholder="{{ placeholder|default(name|title, true) }}"
+        value="{{ obj|default(none)|attr(name)|none_to_empty }}">
+    <label for="floating{{ name|title }}">{{ label|default(name|title, true) }}</label>
+</div>
+{%- endmacro %}
+
+{% macro textarea(name, obj, placeholder=None, label=None, class="mb-3") -%}
+<div class="form-floating {{ class }}">
+    <textarea name="{{ name }}" class="form-control" id="floating{{ name|title }}"
+        placeholder="{{ placeholder|default(name|title, true) }}"
+        style="height: 300px">{{ obj|default(none)|attr(name)|none_to_empty }}</textarea>
+    <label for="floating{{ name|title }}">{{ label|default(name|title, true) }}</label>
+</div>
+{%- endmacro %}
+
+{% macro select(name, obj, options, placeholder=None, label=None, class="mb-3") -%}
+{% set selected = obj|default(none)|attr(name)|none_to_empty %}
+<div class="form-floating {{ class }}">
+    <select name="status" class="form-select" id="floating{{ name|title }}">
+        <option value>[Select {{ name|title }}]</option>
+        {% for label, value in options %}
+        <option value="{{ value }}" {{ 'SELECTED' if selected==value }}>
+            {{ label }}</option>
+        {% endfor %}
+    </select>
+    <label for="floating{{ name|title }}">{{ label|default(name|title, true) }}</label>
+</div>
+{%- endmacro %}

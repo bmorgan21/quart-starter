@@ -1,10 +1,10 @@
 from quart import Blueprint, url_for
 from quart.templating import render_template
-from quart_auth import current_user
+from quart_auth import current_user, login_required
 from quart_schema import validate_querystring
 
 from quart_starter import actions, enums, schemas
-from quart_starter.lib.auth import Forbidden, login_required
+from quart_starter.lib.auth import Forbidden
 
 blueprint = Blueprint("post", __name__, template_folder="templates")
 
@@ -24,6 +24,7 @@ async def index(query_args: schemas.PostQueryString):
 
 @blueprint.route("/mine")
 @validate_querystring(schemas.PostQueryString)
+@login_required
 async def mine(query_args: schemas.PostQueryString):
     resultset = await actions.post.query(
         query_args.to_query(resolves=["author"]),
@@ -69,7 +70,7 @@ async def create():
 
     return await render_template(
         "post/create.html",
-        status_options=enums.PostStatus,
+        status_options=[(x.value.title(), x.value) for x in enums.PostStatus],
         r=url_for(".index"),
         tab="blog",
     )
@@ -88,7 +89,7 @@ async def update(id):
     return await render_template(
         "post/create.html",
         post=post,
-        status_options=enums.PostStatus,
+        status_options=[(x.value.title(), x.value) for x in enums.PostStatus],
         r=url_for(".view", id=post.id),
         tab="blog",
     )

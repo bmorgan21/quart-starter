@@ -5,3 +5,7 @@ function bind(elem) {
         b(elem);
     })
 }
+
+function addQueryParam(url, key, value) {
+    return url + ((url.indexOf('?') == -1) ? "?" : "&") + key + "=" + value;
+}

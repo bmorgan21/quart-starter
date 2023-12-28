@@ -42,33 +42,47 @@ function nodeCallback(node) {
 function defaultFormCallback(form, data) {
     const status = form.querySelector('.status');
     const rInput = form.querySelector('input[name="r"]');
+    let target = form.target;
+    if (!target) {
+        target = '_self';
+    }
+
+    console.log(rInput, target);
 
     if (rInput && rInput.value) {
         const url = rInput.value.replace('{ID}', data['id']);
 
-        const modal = form.closest('.modal');
-        if (modal) {
-            fetch(url, {
-                method: 'GET'
-            }).then(response => {
-                if (response.ok) {
-                    response.text().then(data => {
-                        const dialog = modal.querySelector('.modal-dialog');
-                        dialog.innerHTML = data;
-                        bind(dialog);
-                    });
-                }
-            });
-        } else {
+        if (target == '_top') {
             window.location.replace(url);
+        } else {
+            const modal = form.closest('.modal');
+            if (modal) {
+                fetch(url, {
+                    method: 'GET'
+                }).then(response => {
+                    if (response.ok) {
+                        response.text().then(data => {
+                            const dialog = modal.querySelector('.modal-dialog');
+                            dialog.innerHTML = data;
+                            bind(dialog);
+                        });
+                    }
+                });
+            } else {
+                window.location.replace(url);
+            }
         }
     } else {
-        stopLoading(form);
-        clearValidation(form);
-        if (status) {
-            status.innerHTML = "Thanks for your submission!";
+        if (target == '_top') {
+            window.location.reload();
+        } else {
+            stopLoading(form);
+            clearValidation(form);
+            if (status) {
+                status.innerHTML = "Thanks for your submission!";
+            }
+            form.reset()
         }
-        form.reset()
     }
 }
 
@@ -77,7 +91,7 @@ async function handleSubmit(event, callback) {
 
     const form = event.target;
     const status = form.querySelector('.status');
-    const data = form2js(form, '.', true, nodeCallback);
+    const data = form2js(form, '.', false, nodeCallback);
 
     startLoading(form);
 
@@ -105,41 +119,46 @@ async function handleSubmit(event, callback) {
                 if (Object.hasOwn(data, 'errors')) {
                     const ul = document.createElement('ul');
                     data.errors.forEach((value) => {
-                        value.loc.forEach((name) => {
-                            const input = form.querySelector('[name="' + name + '"]');
-                            if (input) {
-                                input.classList.add('is-invalid');
+                        const input = form.querySelector('[name="' + value.loc + '"]');
+                        if (input) {
+                            input.classList.add('is-invalid');
 
-                                const div = input.parentElement;
+                            const div = input.parentElement;
+                            const error = document.createElement('div');
+                            error.classList.add('invalid-feedback');
+                            error.innerHTML = value.msg;
+                            div.appendChild(error);
+                        } else {
+                            const element = document.getElementById(value.loc);
+                            if (element) {
                                 const error = document.createElement('div');
                                 error.classList.add('invalid-feedback');
-                                error.innerHTML = value.msg;
-                                div.appendChild(error);
-                            } else {
-                                const element = document.getElementById(name);
-                                if (element) {
-                                    const error = document.createElement('div');
-                                    error.classList.add('invalid-feedback');
-                                    error.classList.add('d-block');
-                                    error.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> ' + value.msg;
+                                error.classList.add('d-block');
+                                error.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> ' + value.msg;
 
-                                    if (element.classList.contains('input')) {
-                                        const div = element.parentElement;
-                                        div.appendChild(error);
-                                    } else {
-                                        element.appendChild(error);
-                                    }
+                                if (element.classList.contains('input')) {
+                                    const div = element.parentElement;
+                                    div.appendChild(error);
                                 } else {
-                                    const li = document.createElement('li');
-                                    li.innerHTML = "[" + value.loc + "] " + value.msg;
-                                    ul.appendChild(li)
+                                    element.appendChild(error);
                                 }
+                            } else {
+                                const li = document.createElement('li');
+                                if (value.loc != '') {
+                                    li.innerHTML = "[" + value.loc + "] " + value.msg;
+                                } else {
+                                    li.innerHTML = value.msg;
+                                }
+                                ul.appendChild(li)
                             }
-                        });
+                        }
                     });
+
                     if (status) {
                         status.innerHTML = "Correct the errors above.";
-                        status.appendChild(ul);
+                        if (ul.children.length > 0) {
+                            status.appendChild(ul);
+                        }
                     }
                 } else {
                     if (status) {

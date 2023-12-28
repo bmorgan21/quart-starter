@@ -5,7 +5,8 @@
 {% block content %}
 <div class="col-12 col-lg-8">
     <div class="float-end mt-2">
-        <a class="btn btn-primary btn-sm" href="#"><i class="bi bi-file-earmark-plus"></i> Create Post</a>
+        <a class="btn btn-primary btn-sm" href="{{ url_for('.create') }}"><i class="bi bi-file-earmark-plus"></i> Create
+            Post</a>
     </div>
     <ul class="nav nav-underline mb-2">
         <li class="nav-item">
@@ -19,7 +20,7 @@
         </li>
         <li class="nav-item">
             <a class="nav-link {% if subtab == 'mine-pending' %}active{% endif %}"
-                href="{{ url_for('post.mine', status='pending', sort='-created_at__-id') }}">My Pending
+                href="{{ url_for('post.mine', status='pending') }}">My Pending
                 Posts</a>
         </li>
     </ul>
@@ -27,16 +28,16 @@
     <div class="my-3 p-3 pt-0 bg-body rounded shadow-sm">
         {% for post in resultset.posts %}
         <div class="d-flex text-body-secondary pt-3">
-            <img width="32" height="32" src="{{ post.author.picture }}" class="rounded me-2 d-shrink-0" />
+            {{ macros.user_icon(post.author, 32, "me-2")}}
             <div class="pb-3 mb-0 small lh-sm {% if not loop.last %}border-bottom {% endif %}flex-grow-1">
                 <div class="d-flex justify-content-between">
                     <a class="fw-bold" href="{{ url_for('post.view', id=post.id) }}">{{ post.title }}</a>
                 </div>
-                <span class="d-block">{{ post.content|markdown|striptags|truncate(150) }}</span>
+                <span class="d-block">{{ post.content|markdown|striptags|truncate(200) }}</span>
             </div>
             <div class="pb-3 mb-0 {% if not loop.last %}border-bottom {% endif %}small lh-sm flex-shrink-0">
                 <div class="text-muted text-end">
-                    {% if post.status == " published" %}
+                    {% if post.status == "published" %}
                     <strong>Published</strong><br /> {{ post.published_at|ago }}
                     {% else %}
                     <strong>Updated</strong><br /> {{ post.modified_at|ago }}
@@ -45,7 +46,9 @@
             </div>
         </div>
         {% else %}
-        No Posts Found ...
+        <div class="pt-3">
+            No Posts Found.
+        </div>
         {% endfor %}
     </div>
 

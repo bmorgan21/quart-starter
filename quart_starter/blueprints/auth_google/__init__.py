@@ -76,13 +76,13 @@ async def callback():
     print("!! ", id_info)
 
     email = id_info.get("email")
-    user = await actions.get_user(email=email)
+    user = await actions.user.get(email=email)
     if not user:
-        user = await actions.create_user(
-            schemas.UserIn(name=id_info["name"], email=id_info["email"])
+        user = await actions.user.create(
+            schemas.UserCreate(name=id_info["name"], email=id_info["email"])
         )
     else:
-        user = await actions.update_user_auth_id(id=user.id)
+        user = await actions.user.update_auth_id(id=user.id)
 
     login_user(AuthUser(user.auth_id))
     return redirect(

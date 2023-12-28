@@ -1,30 +1,47 @@
 from typing import List, Optional, Union
 
-from pydantic import validator
+from pydantic import HttpUrl, field_validator
 
 from quart_starter import enums
 
-from .helpers import BaseModel, parse_list
+from .helpers import NOTSET, BaseModel, EmailStr, PasswordStr, parse_list
 from .pagination import PageInfo, Pagination
 from .query import Query
 
+ROLE_VALIDATOR = enums.UserRole
+NAME_VALIDATOR = str
+EMAIL_VALIDATOR = EmailStr
+STATUS_VALIDATOR = enums.UserStatus
+PICTURE_VALIDATOR = HttpUrl
+PASSWORD_VALIDATOR = PasswordStr
 
-class UserBase(BaseModel):
+
+class UserCreate(BaseModel):
     auth_id: Optional[str] = None
+    name: NAME_VALIDATOR
+    email: EMAIL_VALIDATOR
+    status: STATUS_VALIDATOR = enums.UserStatus.PENDING
+    picture: Optional[PICTURE_VALIDATOR] = None
+    password: Optional[PASSWORD_VALIDATOR] = None
+    role: ROLE_VALIDATOR = enums.UserRole.USER
+
+
+class UserPatch(BaseModel):
+    name: NAME_VALIDATOR = NOTSET
+    email: EMAIL_VALIDATOR = NOTSET
+    # Optional means the value can be None
+    # https://docs.pydantic.dev/2.0/migration/#required-optional-and-nullable-fields
+    picture: Optional[PICTURE_VALIDATOR] = NOTSET
+
+
+class User(BaseModel):
+    id: int
+    auth_id: Optional[str]
+    role: str
     name: str
     email: str
-    status: Optional[str] = None
-    picture: Optional[str] = None
-
-
-class UserIn(UserBase):
-    password: Optional[str] = None
-    role: Optional[enums.UserRoleEnum] = enums.UserRoleEnum.USER
-
-
-class User(UserBase):
-    id: int
-    role: enums.UserRoleEnum
+    status: str
+    picture: Optional[PICTURE_VALIDATOR]
 
 
 class UserFilterField(enums.EnumStr):
@@ -72,9 +89,7 @@ class UserQueryString(BaseModel):
     p: Optional[int] = 1
     resolves: Optional[List[UserResolve]] = []
 
-    _parse_list = validator("id__in", "resolves", allow_reuse=True, pre=True)(
-        parse_list
-    )
+    _parse_list = field_validator("id__in", "resolves", mode="before")(parse_list)
 
     def to_query(self, resolves=None):
         filters = []

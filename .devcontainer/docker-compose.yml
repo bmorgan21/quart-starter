@@ -27,7 +27,7 @@ services:
       DB_PASSWORD: postgres
       DB_USER: postgres
       DB_PORT: 5432
-      QUART_AUTH_COOKIE_SECURE: False
+      QUART_AUTH_COOKIE_SECURE: "False"
 
   db:
     image: postgres:latest
@@ -38,8 +38,13 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_DB: postgres
       POSTGRES_PASSWORD: postgres
-    # Add "forwardPorts": ["5432"] to **devcontainer.json** to forward PostgreSQL locally.
-    # (Adding the "ports" property to this file will not forward from a Codespace.)
+
+  redis:
+    image: redis/redis-stack
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
 
 volumes:
   postgres-data:
+  redis-data:

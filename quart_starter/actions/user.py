@@ -4,13 +4,41 @@ import uuid
 from typing import List
 
 import bcrypt
-from tortoise.exceptions import IntegrityError
 
-from quart_starter import models, schemas
+from quart_starter import enums, models, schemas
 from quart_starter.lib.error import ActionError
 
+from .helpers import conditional_set, handle_orm_errors
 
-async def get_user(
+
+def has_permission(
+    user: schemas.User,
+    user_id: int,
+    user_role: enums.UserRole,
+    permission: enums.Permission,
+) -> bool:
+    if permission == enums.Permission.CREATE:
+        return True
+
+    if permission == enums.Permission.READ:
+        if user_role == enums.UserRole.ADMIN:
+            return True
+        return user_id == user.id
+
+    if permission == enums.Permission.UPDATE:
+        if user_role == enums.UserRole.ADMIN:
+            return True
+        return user_id == user.id
+
+    if permission == enums.Permission.DELETE:
+        if user_role == enums.UserRole.ADMIN:
+            return True
+
+    return False
+
+
+@handle_orm_errors
+async def get(
     id: int = None,
     email: str = None,
     auth_id: str = None,
@@ -18,23 +46,23 @@ async def get_user(
 ) -> schemas.User:
     user = None
     if id:
-        user = await models.User.get_or_none(id=id)
+        user = await models.User.get(id=id)
     elif email:
-        user = await models.User.get_or_none(email=email)
+        user = await models.User.get(email=email)
     elif auth_id:
-        user = await models.User.get_or_none(auth_id=auth_id)
+        user = await models.User.get(auth_id=auth_id)
+    else:
+        raise ActionError("missing lookup key", type="not_found")
 
-    if user:
-        if resolves:
-            await user.fetch_related(*resolves)
+    if resolves:
+        await user.fetch_related(*resolves)
 
-        return schemas.User.model_validate(user)
-
-    return None
+    return schemas.User.model_validate(user)
 
 
-async def get_users(query: schemas.UserQuery) -> schemas.UserResultSet:
-    queryset, pagination = await query.queryset(models.User)
+@handle_orm_errors
+async def query(q: schemas.UserQuery) -> schemas.UserResultSet:
+    queryset, pagination = await q.queryset(models.User)
 
     return schemas.UserResultSet(
         pagination=pagination,
@@ -42,24 +70,18 @@ async def get_users(query: schemas.UserQuery) -> schemas.UserResultSet:
     )
 
 
-async def create_user(data: schemas.UserIn) -> schemas.User:
+@handle_orm_errors
+async def create(data: schemas.UserCreate) -> schemas.User:
     md5_hash = hashlib.md5(data.email.encode()).hexdigest()
     gravatar = f"https://www.gravatar.com/avatar/{md5_hash}"
 
-    try:
-        user = await models.User.create(
-            auth_id=data.auth_id or str(uuid.uuid4()),
-            name=data.name,
-            email=data.email,
-            picture=gravatar,
-            role=data.role,
-        )
-    except IntegrityError as error:
-        if str(error).startswith(
-            'duplicate key value violates unique constraint "user_email_key"'
-        ):
-            raise ActionError("email already exists", loc=["email"]) from error
-        raise
+    user = await models.User.create(
+        auth_id=data.auth_id or str(uuid.uuid4()),
+        name=data.name,
+        email=data.email,
+        picture=gravatar,
+        role=data.role,
+    )
 
     if data.password:
         await set_password(user.id, data.password)
@@ -67,21 +89,37 @@ async def create_user(data: schemas.UserIn) -> schemas.User:
     return schemas.User.model_validate(user)
 
 
-async def delete_user(id: int) -> None:
+@handle_orm_errors
+async def delete(id: int) -> None:
     user = await models.User.get(id=id)
     await user.delete()
 
 
-async def update_user_auth_id(id: int) -> schemas.User:
-    user = await models.User.get_or_none(id=id)
+@handle_orm_errors
+async def update(id: int, data: schemas.UserPatch) -> schemas.User:
+    user = await models.User.get(id=id)
+
+    conditional_set(user, "name", data.name)
+    conditional_set(user, "email", data.email)
+    conditional_set(user, "picture", data.picture)
+
+    await user.save()
+
+    return schemas.User.model_validate(user)
+
+
+@handle_orm_errors
+async def update_auth_id(id: int) -> schemas.User:
+    user = await models.User.get(id=id)
     user.auth_id = str(uuid.uuid4())
     await user.save()
 
     return schemas.User.model_validate(user)
 
 
+@handle_orm_errors
 async def set_password(id: int, password: str) -> None:
-    user = await models.User.get_or_none(id=id)
+    user = await models.User.get(id=id)
 
     user.hashed_password = bcrypt.hashpw(
         base64.b64encode(hashlib.sha256(password.encode("utf-8")).digest()),
@@ -90,8 +128,9 @@ async def set_password(id: int, password: str) -> None:
     await user.save()
 
 
+@handle_orm_errors
 async def check_password(id: int, password: str) -> bool:
-    user = await models.User.get_or_none(id=id)
+    user = await models.User.get(id=id)
 
     return user.hashed_password and bcrypt.checkpw(
         base64.b64encode(hashlib.sha256(password.encode("utf-8")).digest()),

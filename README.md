@@ -6,6 +6,8 @@ Before any of the commands will work, you MUST run `init` in each terminal.  Aft
 * [Boostrap 5.3 Documentation](https://getbootstrap.com/docs/5.3)
 * [Quart](https://quart.palletsprojects.com/en/latest/)
 * [Tortoise ORM](https://tortoise.github.io/)
+* [Websocket PubSub](https://github.com/NandaGopal56/websockets-pubsub)
+* [Python, Redis & FastAPI](https://medium.com/@nandagopal05/scaling-websockets-with-pub-sub-using-python-redis-fastapi-b16392ffe291__)
 
 # Getting Started
 
@@ -32,3 +34,9 @@ When you are ready to extend your application and make changes to your models, y
 This will create a new file in the migration/models directory.  At this point no changes have been made to the database.  In order to apply those changes you must run the following command:
 
 `aerich upgrade`
+
+----
+
+In order to run pylint in the context of the venv, you must use this command:
+
+`python $(which pylint) quart_starter`

@@ -1,27 +1,65 @@
-from datetime import datetime
 from typing import List
 
-from quart_starter import models, schemas
+from tortoise.expressions import F
+
+from quart_starter import enums, models, schemas
+from quart_starter.lib.error import ActionError
+
+from .helpers import conditional_set, handle_orm_errors
 
 
-async def get_post(
+def has_permission(
+    post: schemas.Post,
+    user_id: int,
+    user_role: enums.UserRole,
+    permission: enums.Permission,
+) -> bool:
+    if permission == enums.Permission.CREATE:
+        return True
+
+    if permission == enums.Permission.READ:
+        if user_role == enums.UserRole.ADMIN:
+            return True
+        if user_id == post.author_id:
+            return True
+        return post.status == enums.PostStatus.PUBLISHED
+
+    if permission == enums.Permission.UPDATE:
+        if user_role == enums.UserRole.ADMIN:
+            return True
+        if user_id == post.author_id:
+            return True
+        return False
+
+    if permission == enums.Permission.DELETE:
+        if user_role == enums.UserRole.ADMIN:
+            return True
+        if user_id == post.author_id:
+            return True
+        return False
+
+    return False
+
+
+@handle_orm_errors
+async def get(
     id: int = None, resolves: List[schemas.PostResolve] = None
 ) -> schemas.Post:
     post = None
     if id:
-        post = await models.Post.get_or_none(id=id)
+        post = await models.Post.get(id=id)
+    else:
+        raise ActionError("missing lookup key", type="not_found")
 
-    if post:
-        if resolves:
-            await post.fetch_related(*resolves)
+    if resolves:
+        await post.fetch_related(*resolves)
 
-        return schemas.Post.model_validate(post)
-
-    return post
+    return schemas.Post.model_validate(post)
 
 
-async def get_posts(
-    query: schemas.PostQuery, status: str = None, author_id=None
+@handle_orm_errors
+async def query(
+    q: schemas.PostQuery, status: str = None, author_id=None
 ) -> schemas.PostResultSet:
     qs = models.Post.all()
     if status:
@@ -30,7 +68,7 @@ async def get_posts(
     if author_id:
         qs = qs.filter(author_id=author_id)
 
-    queryset, pagination = await query.queryset(qs)
+    queryset, pagination = await q.queryset(qs)
 
     return schemas.PostResultSet(
         pagination=pagination,
@@ -38,7 +76,8 @@ async def get_posts(
     )
 
 
-async def create_post(author_id: int, data: schemas.PostIn) -> schemas.Post:
+@handle_orm_errors
+async def create(author_id: int, data: schemas.PostCreate) -> schemas.Post:
     post = await models.Post.create(
         title=data.title, content=data.content, author_id=author_id
     )
@@ -49,19 +88,27 @@ async def create_post(author_id: int, data: schemas.PostIn) -> schemas.Post:
     return schemas.Post.model_validate(post)
 
 
-async def delete_post(id: int) -> None:
+@handle_orm_errors
+async def delete(id: int) -> None:
     post = await models.Post.get(id=id)
     await post.delete()
 
 
-async def update_post(id: int, data: schemas.PostIn) -> schemas.Post:
-    post = await models.Post.get_or_none(id=id)
+@handle_orm_errors
+async def update(id: int, data: schemas.PostPatch) -> schemas.Post:
+    post = await models.Post.get(id=id)
 
-    if post:
-        post.title = data.title
-        post.content = data.content
+    conditional_set(post, "title", data.title)
+    conditional_set(post, "content", data.content)
+
+    if data.status != schemas.NOTSET:
         post.update_status(data.status)
 
-        await post.save()
+    await post.save()
 
     return schemas.Post.model_validate(post)
+
+
+@handle_orm_errors
+async def update_viewed(id: int) -> None:
+    await models.Post.filter(id=id).update(viewed=F("viewed") + 1)

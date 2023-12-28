@@ -3,13 +3,11 @@ from typing import Any, Callable
 
 from quart import current_app
 from quart_auth import AuthUser as _AuthUser
-from quart_auth import current_user
+from quart_auth import Unauthorized, current_user
 
 from quart_starter import actions
 
-
-class Unauthorized(Exception):
-    pass
+from .error import ActionError
 
 
 class Forbidden(Exception):
@@ -24,7 +22,12 @@ class AuthUser(_AuthUser):
 
     async def _resolve(self):
         if not self._resolved:
-            self._user = await actions.get_user(auth_id=self.auth_id)
+            try:
+                self._user = await actions.user.get(auth_id=self.auth_id)
+            except ActionError as error:
+                if error.type != "action_error.not_found":
+                    raise
+                self._user = None
             self._resolved = True
 
     async def __getattr__(self, name):
@@ -39,16 +42,6 @@ class AuthUser(_AuthUser):
 
     async def has_roles(self, roles):
         return await self.is_authenticated and await self.role in roles
-
-
-def login_required(func: Callable) -> Callable:
-    @wraps(func)
-    async def wrapper(*args: Any, **kwargs: Any) -> Any:
-        if not await current_user.is_authenticated:
-            raise Unauthorized()
-        return await current_app.ensure_async(func)(*args, **kwargs)
-
-    return wrapper
 
 
 def roles_accepted(*role_names) -> Callable:

@@ -4,9 +4,10 @@ import urllib.parse
 import humanize
 import markdown
 from markupsafe import Markup
-from quart import Quart, redirect, request, url_for
+from pydantic_core import ValidationError
+from quart import Quart, has_request_context, redirect, request, url_for
 from quart.templating import render_template
-from quart_auth import QuartAuth
+from quart_auth import QuartAuth, Unauthorized
 from quart_schema import QuartSchema
 from quart_schema.validation import (
     RequestSchemaValidationError,
@@ -17,9 +18,11 @@ from werkzeug.exceptions import NotFound
 
 from quart_starter import schemas, settings
 from quart_starter.command import register_commands
-from quart_starter.lib.auth import AuthUser, Forbidden, Unauthorized
+from quart_starter.lib.auth import AuthUser, Forbidden
 from quart_starter.lib.error import ActionError
 from quart_starter.lib.middleware import ProxyMiddleware
+from quart_starter.lib.pubsub import RedisPubSubManager
+from quart_starter.lib.websocket import WebsocketManager
 from quart_starter.log import register_logging
 
 
@@ -30,6 +33,20 @@ def relative_url_for(**params):
     return url_for(request.url_rule.endpoint, **request.view_args, **query_args)
 
 
+def utc_to_local(value):
+    offset = None
+    if "tz" in request.cookies:
+        try:
+            offset = int(request.cookies["tz"])
+        except ValueError:
+            offset = None
+
+    if offset:
+        return (value - dt.timedelta(seconds=offset)).replace(tzinfo=None)
+
+    return value
+
+
 def register_blueprints(app):
     # pylint: disable=import-outside-toplevel
     from quart_starter.blueprints.api import blueprint as api_blueprint
@@ -37,6 +54,8 @@ def register_blueprints(app):
     from quart_starter.blueprints.auth_google import blueprint as auth_google_blueprint
     from quart_starter.blueprints.marketing import blueprint as marketing_blueprint
     from quart_starter.blueprints.post import blueprint as post_blueprint
+    from quart_starter.blueprints.user import blueprint as user_blueprint
+    from quart_starter.blueprints.ws import blueprint as ws_blueprint
 
     # pylint: enable=import-outside-toplevel
 
@@ -45,6 +64,8 @@ def register_blueprints(app):
     app.register_blueprint(auth_google_blueprint, url_prefix="/auth/google")
     app.register_blueprint(marketing_blueprint)
     app.register_blueprint(post_blueprint, url_prefix="/post")
+    app.register_blueprint(user_blueprint, url_prefix="/user")
+    app.register_blueprint(ws_blueprint, url_prefix="/ws")
 
 
 def create_app(**config_overrides):
@@ -63,14 +84,34 @@ def create_app(**config_overrides):
     register_tortoise(app, config=app.config["TORTOISE_ORM"])
     register_commands(app)
 
+    pubsub_client = RedisPubSubManager("redis")
+    app.socket_manager = WebsocketManager(pubsub_client)
+
+    # hide routes that don't have tags
+    for rule in app.url_map.iter_rules():
+        func = app.view_functions[rule.endpoint]
+
+        if not rule.endpoint.startswith("api."):
+            func.__dict__["_quart_schema_hidden"] = True
+        else:
+            tag = rule.endpoint.split(".")[1]
+            setattr(func, "_quart_schema_tag", set([tag]))
+
+            d = getattr(func, "_quart_schema_response_schemas")
+            d[400] = (schemas.Errors, None)
+            d[404] = (schemas.Error, None)
+
     @app.errorhandler(RequestSchemaValidationError)
     async def handle_request_validation_error(error):
-        if error.validation_error:
+        if isinstance(error.validation_error, ValidationError):
             return (
                 schemas.Errors(
                     errors=[
                         schemas.Error(
-                            loc=x.get("loc"), type=x.get("type"), msg=x["msg"]
+                            loc=".".join(x.get("loc")),
+                            type=x.get("type"),
+                            msg=x["msg"],
+                            input=x.get("input"),
                         )
                         for x in error.validation_error.errors()
                     ]
@@ -79,19 +120,22 @@ def create_app(**config_overrides):
             )
         return (
             schemas.Errors(
-                errors=[schemas.Error(loc=[], type="VALIDATION", msg=str(error))]
+                errors=[schemas.Error(loc="page", type="VALIDATION", msg=str(error))]
             ),
             400,
         )
 
     @app.errorhandler(ResponseSchemaValidationError)
     async def handle_response_validation_error(error):
-        if error.validation_error:
+        if isinstance(error.validation_error, ValidationError):
             return (
                 schemas.Errors(
                     errors=[
                         schemas.Error(
-                            loc=x.get("loc"), type=x.get("type"), msg=x["msg"]
+                            loc=".".join(x.get("loc")),
+                            type=x.get("type"),
+                            msg=x["msg"],
+                            input=x.get("input"),
                         )
                         for x in error.validation_error.errors()
                     ]
@@ -100,13 +144,19 @@ def create_app(**config_overrides):
             )
         return (
             schemas.Errors(
-                errors=[schemas.Error(loc=[], type="VALIDATION", msg=str(error))]
+                errors=[schemas.Error(loc="page", type="VALIDATION", msg=str(error))]
             ),
             400,
         )
 
     @app.errorhandler(ActionError)
     async def handle_field_value_error(error):
+        if error.type in ("action_error.not_found", "action_error.does_not_exist"):
+            return (
+                schemas.Error(loc=error.loc, type=error.type, msg=str(error)),
+                404,
+            )
+
         return (
             schemas.Errors(
                 errors=[schemas.Error(loc=error.loc, type=error.type, msg=str(error))]
@@ -116,41 +166,31 @@ def create_app(**config_overrides):
 
     @app.errorhandler(Unauthorized)
     async def handle_response_unathorized_error(error):
-        if request.accept_mimetypes.accept_html:
+        if has_request_context() and request.accept_mimetypes.accept_html:
             return redirect(url_for("auth.login", r=request.url))
 
         return (
-            schemas.Errors(
-                errors=[
-                    schemas.Error(loc=["auth_id"], type="UNAUTHORIZED", msg=str(error))
-                ]
-            ),
+            schemas.Error(loc="auth_id", type="auth.unauthorized", msg=str(error)),
             401,
         )
 
     @app.errorhandler(Forbidden)
     async def handle_response_forbidden_error(error):
-        if request.accept_mimetypes.accept_html:
+        if has_request_context() and request.accept_mimetypes.accept_html:
             return await render_template("403.html")
 
         return (
-            schemas.Errors(
-                errors=[
-                    schemas.Error(loc=["auth_id"], type="FORBIDDEN", msg=str(error))
-                ]
-            ),
+            schemas.Error(loc="auth_id", type="auth.forbidden", msg=str(error)),
             403,
         )
 
     @app.errorhandler(NotFound)
     async def handle_response_not_found_error(error):
-        if request.accept_mimetypes.accept_html:
+        if has_request_context() and request.accept_mimetypes.accept_html:
             return await render_template("404.html")
 
         return (
-            schemas.Errors(
-                errors=[schemas.Error(loc=["page"], type="NOT_FOUND", msg=str(error))]
-            ),
+            schemas.Error(loc="page", type="NOT_FOUND", msg=str(error)),
             404,
         )
 
@@ -160,6 +200,7 @@ def create_app(**config_overrides):
             now = dt.datetime.now(dt.timezone.utc)
             delta = now - value
             if delta > dt.timedelta(days=1):
+                value = utc_to_local(value)
                 return value.strftime("%b %d, %Y")
             return humanize.naturaltime(delta)
         return default
@@ -167,6 +208,17 @@ def create_app(**config_overrides):
     @app.template_filter(name="markdown")
     def markdown_filter(value):
         return Markup(markdown.markdown(value))
+
+    @app.template_filter(name="format_datetime")
+    def format_datetime(value, format="%m/%d/%Y %H:%M:%S"):
+        value = utc_to_local(value)
+        return value.strftime(format)
+
+    @app.template_filter(name="none_to_empty")
+    def none_to_empty(value):
+        if value is None:
+            return ""
+        return value
 
     @app.context_processor
     def add_context():

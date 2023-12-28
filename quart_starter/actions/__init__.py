@@ -1,3 +1,3 @@
-# pylint: disable=unused-wildcard-import
-from .post import *
-from .user import *
+__all__ = ["post", "user"]
+
+from . import post, user

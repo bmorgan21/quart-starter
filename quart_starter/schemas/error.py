@@ -1,14 +1,14 @@
-from dataclasses import dataclass
-from typing import List
+from typing import Any, List, Optional
+
+from .helpers import PydanticBaseModel
 
 
-@dataclass
-class Error:
-    loc: List[str]
+class Error(PydanticBaseModel):
+    loc: str
     msg: str
     type: str
+    input: Optional[Any] = None
 
 
-@dataclass
-class Errors:
+class Errors(PydanticBaseModel):
     errors: List[Error]

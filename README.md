@@ -6,6 +6,8 @@ Before any of the commands will work, you MUST run `init` in each terminal.  Aft
 * [Boostrap 5.3 Documentation](https://getbootstrap.com/docs/5.3)
 * [Quart](https://quart.palletsprojects.com/en/latest/)
 * [Tortoise ORM](https://tortoise.github.io/)
+* [Websocket PubSub](https://github.com/NandaGopal56/websockets-pubsub)
+* [Python, Redis & FastAPI](https://medium.com/@nandagopal05/scaling-websockets-with-pub-sub-using-python-redis-fastapi-b16392ffe291__)
 
 # Getting Started
 

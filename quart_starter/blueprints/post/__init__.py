@@ -1,12 +1,35 @@
-from quart import Blueprint, url_for
+import asyncio
+import json
+from typing import Any
+
+from quart import Blueprint, current_app, url_for, websocket
 from quart.templating import render_template
 from quart_auth import current_user, login_required
 from quart_schema import validate_querystring
 
 from quart_starter import actions, enums, schemas
 from quart_starter.lib.auth import Forbidden
+from quart_starter.lib.websocket import get_session_id
 
 blueprint = Blueprint("post", __name__, template_folder="templates")
+
+
+async def send_message(
+    msg_type: str, user_id: str, channel_id: str, message: str, data: Any = None
+):
+    message = {
+        "user_id": user_id,
+        "channel_id": channel_id,
+        "message": message,
+        "type": msg_type,
+    }
+
+    if data is not None:
+        message["data"] = data
+
+    await current_app.socket_manager.broadcast_to_channel(
+        channel_id, json.dumps(message)
+    )
 
 
 @blueprint.route("/")
@@ -53,6 +76,12 @@ async def view(id: int):
     await actions.post.update_viewed(id)
     post.viewed += 1  # make sure the user sees their view
 
+    user_id = await current_user.id
+
+    await send_message(
+        "view", user_id, f"post-{id}", f"User {user_id} viewed page", post.viewed
+    )
+
     can_edit = actions.post.has_permission(
         post, await current_user.id, await current_user.role, enums.Permission.UPDATE
     )
@@ -78,7 +107,7 @@ async def create():
 
 @blueprint.route("/<int:id>/edit/")
 @login_required
-async def update(id):
+async def update(id: int):
     post = await actions.post.get(id=id)
 
     if not actions.post.has_permission(
@@ -93,3 +122,61 @@ async def update(id):
         r=url_for(".view", id=post.id),
         tab="blog",
     )
+
+
+@blueprint.websocket("/<int:id>/ws")
+@login_required
+async def ws(id: int) -> None:
+    post = await actions.post.get(id=id)
+
+    user_id = await current_user.id
+
+    if not actions.post.has_permission(
+        post, user_id, await current_user.role, enums.Permission.READ
+    ):
+        raise Forbidden()
+
+    channel_id = f"post-{id}"
+
+    socket = websocket._get_current_object()  # pylint: disable=protected-access
+    await current_app.socket_manager.add_user_to_channel(channel_id, socket)
+
+    await send_message(
+        "connected",
+        user_id,
+        channel_id,
+        f"User {user_id} connected to room - {channel_id}",
+        data={
+            "id": user_id,
+            "name": await current_user.name,
+            "picture": str(await current_user.picture),
+            "session_id": get_session_id(user_id),
+        },
+    )
+
+    try:
+        while True:
+            data = await websocket.receive()
+            message = {
+                "user_id": user_id,
+                "channel_id": channel_id,
+                "message": data,
+            }
+            await current_app.socket_manager.broadcast_to_channel(
+                channel_id, json.dumps(message)
+            )
+
+    except asyncio.CancelledError:
+        await current_app.socket_manager.remove_user_from_channel(channel_id, socket)
+
+        await send_message(
+            "disconnected",
+            user_id,
+            channel_id,
+            f"User {user_id} disconnected from channel - {channel_id}",
+            data={
+                "session_id": get_session_id(user_id),
+            },
+        )
+
+        raise

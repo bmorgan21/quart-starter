@@ -5,7 +5,7 @@ import humanize
 import markdown
 from markupsafe import Markup
 from pydantic_core import ValidationError
-from quart import Quart, redirect, request, url_for
+from quart import Quart, has_request_context, redirect, request, url_for
 from quart.templating import render_template
 from quart_auth import QuartAuth, Unauthorized
 from quart_schema import QuartSchema
@@ -21,6 +21,8 @@ from quart_starter.command import register_commands
 from quart_starter.lib.auth import AuthUser, Forbidden
 from quart_starter.lib.error import ActionError
 from quart_starter.lib.middleware import ProxyMiddleware
+from quart_starter.lib.pubsub import RedisPubSubManager
+from quart_starter.lib.websocket import WebsocketManager
 from quart_starter.log import register_logging
 
 
@@ -53,6 +55,7 @@ def register_blueprints(app):
     from quart_starter.blueprints.marketing import blueprint as marketing_blueprint
     from quart_starter.blueprints.post import blueprint as post_blueprint
     from quart_starter.blueprints.user import blueprint as user_blueprint
+    from quart_starter.blueprints.ws import blueprint as ws_blueprint
 
     # pylint: enable=import-outside-toplevel
 
@@ -62,6 +65,7 @@ def register_blueprints(app):
     app.register_blueprint(marketing_blueprint)
     app.register_blueprint(post_blueprint, url_prefix="/post")
     app.register_blueprint(user_blueprint, url_prefix="/user")
+    app.register_blueprint(ws_blueprint, url_prefix="/ws")
 
 
 def create_app(**config_overrides):
@@ -79,6 +83,9 @@ def create_app(**config_overrides):
     register_blueprints(app)
     register_tortoise(app, config=app.config["TORTOISE_ORM"])
     register_commands(app)
+
+    pubsub_client = RedisPubSubManager("redis")
+    app.socket_manager = WebsocketManager(pubsub_client)
 
     # hide routes that don't have tags
     for rule in app.url_map.iter_rules():
@@ -159,7 +166,7 @@ def create_app(**config_overrides):
 
     @app.errorhandler(Unauthorized)
     async def handle_response_unathorized_error(error):
-        if request.accept_mimetypes.accept_html:
+        if has_request_context() and request.accept_mimetypes.accept_html:
             return redirect(url_for("auth.login", r=request.url))
 
         return (
@@ -169,7 +176,7 @@ def create_app(**config_overrides):
 
     @app.errorhandler(Forbidden)
     async def handle_response_forbidden_error(error):
-        if request.accept_mimetypes.accept_html:
+        if has_request_context() and request.accept_mimetypes.accept_html:
             return await render_template("403.html")
 
         return (
@@ -179,7 +186,7 @@ def create_app(**config_overrides):
 
     @app.errorhandler(NotFound)
     async def handle_response_not_found_error(error):
-        if request.accept_mimetypes.accept_html:
+        if has_request_context() and request.accept_mimetypes.accept_html:
             return await render_template("404.html")
 
         return (

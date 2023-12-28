@@ -1,3 +1,6 @@
+from quart import has_request_context
+
+
 class ProxyMiddleware:
     def __init__(self, app):
         self.app = app
@@ -20,10 +23,11 @@ class ProxyMiddleware:
                 headers_seen.add(header)
             elif header == b"x-forwarded-port":
                 port = int(value)
-            elif header == b"x-forwarded-proto":
-                scope["scheme"] = value.decode("utf-8")
-            elif header == b"x-scheme":
-                scope["scheme"] = value.decode("utf-8")
+            elif scope["scheme"] != "ws":
+                if header == b"x-forwarded-proto":
+                    scope["scheme"] = value.decode("utf-8")
+                elif header == b"x-scheme":
+                    scope["scheme"] = value.decode("utf-8")
 
         headers.append((b"host", host.encode("utf-8")))
         scope["headers"] = headers

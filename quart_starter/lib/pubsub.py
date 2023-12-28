@@ -45,8 +45,9 @@ class RedisPubSubManager(PubSubManager):
         """
         Connects to the Redis server and initializes the pubsub client.
         """
-        self.redis_connection = await self._get_redis_connection()
-        self.pubsub = self.redis_connection.pubsub()
+        if self.redis_connection is None:
+            self.redis_connection = await self._get_redis_connection()
+            self.pubsub = self.redis_connection.pubsub()
 
     async def publish(self, channel_id: str, message: str) -> None:
         """

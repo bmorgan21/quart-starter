@@ -1,5 +1,6 @@
 import asyncio
 import json
+import uuid
 from typing import Any
 
 from quart import Blueprint, current_app, url_for, websocket
@@ -9,63 +10,9 @@ from quart_schema import validate_querystring
 
 from quart_starter import actions, enums, schemas
 from quart_starter.lib.auth import Forbidden
-from quart_starter.lib.websocket import get_session_id
+from quart_starter.lib.message_manager import MessageManager
 
 blueprint = Blueprint("post", __name__, template_folder="templates")
-
-
-class MessageManager(object):
-    def __init__(self, user_id, channel_id):
-        self.user_id = user_id
-        self.channel_id = channel_id
-
-    async def __aenter__(self):
-        await current_app.socket_manager.add_user_to_channel(
-            self.channel_id, websocket._get_current_object()
-        )
-
-        await self.send_message(
-            "connected",
-            f"User {self.user_id} connected to room - {self.channel_id}",
-            data={
-                "id": self.user_id,
-                "name": await current_user.name,
-                "picture": str(await current_user.picture),
-                "session_id": get_session_id(self.user_id),
-            },
-        )
-
-    async def __aexit__(self, exc_type, exc_val, traceback):
-        if isinstance(exc_val, asyncio.CancelledError):
-            await current_app.socket_manager.remove_user_from_channel(
-                self.channel_id, websocket._get_current_object()
-            )
-
-            await self.send_message(
-                "disconnected",
-                f"User {self.user_id} disconnected from channel - {self.channel_id}",
-                data={
-                    "session_id": get_session_id(self.user_id),
-                },
-            )
-
-    def __await__(self):
-        return self.__aenter__().__await__()
-
-    async def send_message(self, msg_type: str, message: str, data: Any = None):
-        message = {
-            "user_id": self.user_id,
-            "channel_id": self.channel_id,
-            "message": message,
-            "type": msg_type,
-        }
-
-        if data is not None:
-            message["data"] = data
-
-        await current_app.socket_manager.broadcast_to_channel(
-            self.channel_id, json.dumps(message)
-        )
 
 
 @blueprint.route("/")
@@ -113,10 +60,11 @@ async def view(id: int):
     await actions.post.update_viewed(id)
     post.viewed += 1  # make sure the user sees their view
 
-    user_id = await current_user.id
-
-    t = MessageManager(user_id, f"post-{id}")
-    t.send_message("view", f"User {user_id} viewed page", post.viewed)
+    mm = MessageManager(
+        await current_user.get_user(),
+        f"post-{id}",
+    )
+    await mm.send_message("view", f"User {user_id} viewed page", post.viewed)
 
     can_edit = actions.post.has_permission(
         post, await current_user.id, await current_user.role, enums.Permission.UPDATE
@@ -167,7 +115,6 @@ async def update(id: int):
 
 
 @blueprint.websocket("/<int:id>/ws")
-@login_required
 async def ws(id: int) -> None:
     post = await actions.post.get(id=id)
 
@@ -177,7 +124,11 @@ async def ws(id: int) -> None:
     if not actions.post.has_permission(post, user_id, user_role, enums.Permission.READ):
         raise Forbidden()
 
-    async with MessageManager(user_id, f"post-{id}") as mm:
+    async with MessageManager(
+        await current_user.get_user(),
+        f"post-{id}",
+        session_id=websocket.args.get("SESSION_ID"),
+    ) as mm:
         while True:
             data = await websocket.receive()
-            mm.send_message("message", data)
+            await mm.send_message("message", data)

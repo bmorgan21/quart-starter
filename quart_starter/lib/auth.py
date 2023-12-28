@@ -1,13 +1,18 @@
+import json
 from functools import wraps
 from typing import Any, Callable
 
-from quart import current_app
+from quart import current_app, session
 from quart_auth import AuthUser as _AuthUser
 from quart_auth import Unauthorized, current_user
+from unique_names_generator import get_random_name
+from unique_names_generator.data import ADJECTIVES, ANIMALS
 
-from quart_starter import actions
+from quart_starter import actions, enums, schemas
 
 from .error import ActionError
+
+ANONYMOUS_USER = "anonymous_user"
 
 
 class Forbidden(Exception):
@@ -24,10 +29,32 @@ class AuthUser(_AuthUser):
         if not self._resolved:
             try:
                 self._user = await actions.user.get(auth_id=self.auth_id)
+                session.pop(ANONYMOUS_USER, None)
             except ActionError as error:
                 if error.type != "action_error.not_found":
                     raise
-                self._user = None
+
+                try:
+                    u = json.loads(session[ANONYMOUS_USER])
+                except (KeyError, json.decoder.JSONDecodeError):
+                    name = get_random_name(
+                        combo=[ADJECTIVES, ANIMALS], style="lowercase"
+                    )
+                    email = name.replace(" ", ".") + "@gmail.com"
+
+                    u = {
+                        "id": -1,
+                        "auth_id": None,
+                        "name": name,
+                        "role": enums.UserRole.USER,
+                        "email": email,
+                        "status": enums.UserStatus.PENDING,
+                        "picture": actions.user.get_gravatar(email),
+                    }
+                    session[ANONYMOUS_USER] = json.dumps(u)
+
+                self._user = schemas.User.model_validate(u)
+
             self._resolved = True
 
     async def __getattr__(self, name):
@@ -38,10 +65,14 @@ class AuthUser(_AuthUser):
 
     @property
     async def is_authenticated(self) -> bool:
-        return await super().is_authenticated and await self.id
+        return await super().is_authenticated and await self.id is not None
 
     async def has_roles(self, roles):
         return await self.is_authenticated and await self.role in roles
+
+    async def get_user(self):
+        await self._resolve()
+        return self._user
 
 
 def roles_accepted(*role_names) -> Callable:

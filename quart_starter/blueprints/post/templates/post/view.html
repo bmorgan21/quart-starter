@@ -43,25 +43,29 @@
 
     function onmessageCallback(message) {
         const obj = JSON.parse(message);
+        var sessionId = obj['session_id'];
+
         if (obj['type'] == 'view') {
             num_viewed.innerText = obj['data'];
         } else if (obj['type'] == 'connected') {
             var data = obj['data']
-            var sessionId = data['session_id'];
-            const viewers = document.querySelector('div.viewers');
-            const span = document.createElement('span');
-            span.classList.add(`id-${sessionId}`);
-            span.classList.add('me-1');
-            span.innerHTML = `<img title="${data['name']}" width="32" height="32" class="rounded-circle" src="${data['picture']}" />`
-            viewers.appendChild(span);
+
+            var existing = document.querySelector('span.id-' + sessionId);
+            if (!existing) {
+                const viewers = document.querySelector('div.viewers');
+                const span = document.createElement('span');
+                span.classList.add(`id-${sessionId}`);
+                span.classList.add('me-1');
+                span.innerHTML = `<img title="${data['name']}" width="32" height="32" class="rounded-circle" src="${data['picture']}" />`
+                viewers.appendChild(span);
+            }
         } else if (obj['type'] == 'disconnected') {
-            var data = obj['data'];
-            var sessionId = data['session_id'];
-            var span = document.querySelector('span.id-' + sessionId);
-            span.remove();
+            document.querySelectorAll('span.id-' + sessionId).forEach((span) => {
+                span.remove();
+            });
         }
     }
 
-    initWS("{{ url_for('post.ws', id=post.id) }}", onmessageCallback);
+    initWS("{{ url_for('post.ws', id=post.id, SESSION_ID=uuid4()) }}", onmessageCallback);
 </script>
 {% endblock script %}

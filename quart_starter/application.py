@@ -1,5 +1,6 @@
 import datetime as dt
 import urllib.parse
+from uuid import uuid4
 
 import humanize
 import markdown
@@ -222,6 +223,6 @@ def create_app(**config_overrides):
 
     @app.context_processor
     def add_context():
-        return {"relative_url_for": relative_url_for}
+        return {"relative_url_for": relative_url_for, "uuid4": uuid4}
 
     return app

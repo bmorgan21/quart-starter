@@ -11,3 +11,4 @@ asyncpg==0.29.0
 humanize==4.9.0
 Markdown==3.5.1
 redis[hiredis]==5.0.1
+unique-names-generator==1.0.2

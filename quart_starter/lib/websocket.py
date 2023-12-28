@@ -1,6 +1,6 @@
 import asyncio
 
-from quart import Websocket, websocket
+from quart import Websocket
 
 from .pubsub import PubSubManager
 
@@ -45,6 +45,7 @@ class WebsocketManager:
             channel_id (str): Channel ID.
             message (str): Message to be broadcasted.
         """
+        await self.pubsub_client.connect()
         await self.pubsub_client.publish(channel_id, message)
 
     async def remove_user_from_channel(
@@ -81,8 +82,3 @@ class WebsocketManager:
                     for socket in all_sockets:
                         data = message["data"].decode("utf-8")
                         await socket.send(data)
-
-
-def get_session_id(prefix):
-    socket = websocket._get_current_object()  # pylint: disable=protected-access
-    return f"{prefix}-{id(socket)}"

@@ -13,4 +13,7 @@
     "dateTime.timeZone": "America/New_York",
     "editor.defaultFormatter": null,
     "python.defaultInterpreterPath": "/home/vscode/venv/bin/python3",
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    },
 }

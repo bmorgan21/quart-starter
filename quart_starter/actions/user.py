@@ -37,6 +37,11 @@ def has_permission(
     return False
 
 
+def get_gravatar(email):
+    md5_hash = hashlib.md5(email.encode()).hexdigest()
+    return f"https://www.gravatar.com/avatar/{md5_hash}?s=100&d=identicon"
+
+
 @handle_orm_errors
 async def get(
     id: int = None,
@@ -72,8 +77,7 @@ async def query(q: schemas.UserQuery) -> schemas.UserResultSet:
 
 @handle_orm_errors
 async def create(data: schemas.UserCreate) -> schemas.User:
-    md5_hash = hashlib.md5(data.email.encode()).hexdigest()
-    gravatar = f"https://www.gravatar.com/avatar/{md5_hash}"
+    gravatar = get_gravatar(data.email)
 
     user = await models.User.create(
         auth_id=data.auth_id or str(uuid.uuid4()),

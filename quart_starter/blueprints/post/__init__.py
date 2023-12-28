@@ -14,22 +14,58 @@ from quart_starter.lib.websocket import get_session_id
 blueprint = Blueprint("post", __name__, template_folder="templates")
 
 
-async def send_message(
-    msg_type: str, user_id: str, channel_id: str, message: str, data: Any = None
-):
-    message = {
-        "user_id": user_id,
-        "channel_id": channel_id,
-        "message": message,
-        "type": msg_type,
-    }
+class MessageManager(object):
+    def __init__(self, user_id, channel_id):
+        self.user_id = user_id
+        self.channel_id = channel_id
 
-    if data is not None:
-        message["data"] = data
+    async def __aenter__(self):
+        await current_app.socket_manager.add_user_to_channel(
+            self.channel_id, websocket._get_current_object()
+        )
 
-    await current_app.socket_manager.broadcast_to_channel(
-        channel_id, json.dumps(message)
-    )
+        await self.send_message(
+            "connected",
+            f"User {self.user_id} connected to room - {self.channel_id}",
+            data={
+                "id": self.user_id,
+                "name": await current_user.name,
+                "picture": str(await current_user.picture),
+                "session_id": get_session_id(self.user_id),
+            },
+        )
+
+    async def __aexit__(self, exc_type, exc_val, traceback):
+        if isinstance(exc_val, asyncio.CancelledError):
+            await current_app.socket_manager.remove_user_from_channel(
+                self.channel_id, websocket._get_current_object()
+            )
+
+            await self.send_message(
+                "disconnected",
+                f"User {self.user_id} disconnected from channel - {self.channel_id}",
+                data={
+                    "session_id": get_session_id(self.user_id),
+                },
+            )
+
+    def __await__(self):
+        return self.__aenter__().__await__()
+
+    async def send_message(self, msg_type: str, message: str, data: Any = None):
+        message = {
+            "user_id": self.user_id,
+            "channel_id": self.channel_id,
+            "message": message,
+            "type": msg_type,
+        }
+
+        if data is not None:
+            message["data"] = data
+
+        await current_app.socket_manager.broadcast_to_channel(
+            self.channel_id, json.dumps(message)
+        )
 
 
 @blueprint.route("/")
@@ -68,9 +104,10 @@ async def mine(query_args: schemas.PostQueryString):
 async def view(id: int):
     post = await actions.post.get(id=id, resolves=["author"])
 
-    if not actions.post.has_permission(
-        post, await current_user.id, await current_user.role, enums.Permission.READ
-    ):
+    user_id = await current_user.id
+    user_role = await current_user.role
+
+    if not actions.post.has_permission(post, user_id, user_role, enums.Permission.READ):
         raise Forbidden()
 
     await actions.post.update_viewed(id)
@@ -78,9 +115,8 @@ async def view(id: int):
 
     user_id = await current_user.id
 
-    await send_message(
-        "view", user_id, f"post-{id}", f"User {user_id} viewed page", post.viewed
-    )
+    t = MessageManager(user_id, f"post-{id}")
+    t.send_message("view", f"User {user_id} viewed page", post.viewed)
 
     can_edit = actions.post.has_permission(
         post, await current_user.id, await current_user.role, enums.Permission.UPDATE
@@ -92,8 +128,11 @@ async def view(id: int):
 @blueprint.route("/create/")
 @login_required
 async def create():
+    user_id = await current_user.id
+    user_role = await current_user.role
+
     if not actions.post.has_permission(
-        None, await current_user.id, await current_user.role, enums.Permission.CREATE
+        None, user_id, user_role, enums.Permission.CREATE
     ):
         raise Forbidden()
 
@@ -110,8 +149,11 @@ async def create():
 async def update(id: int):
     post = await actions.post.get(id=id)
 
+    user_id = await current_user.id
+    user_role = await current_user.role
+
     if not actions.post.has_permission(
-        post, await current_user.id, await current_user.role, enums.Permission.UPDATE
+        post, user_id, user_role, enums.Permission.UPDATE
     ):
         raise Forbidden()
 
@@ -130,53 +172,12 @@ async def ws(id: int) -> None:
     post = await actions.post.get(id=id)
 
     user_id = await current_user.id
+    user_role = await current_user.role
 
-    if not actions.post.has_permission(
-        post, user_id, await current_user.role, enums.Permission.READ
-    ):
+    if not actions.post.has_permission(post, user_id, user_role, enums.Permission.READ):
         raise Forbidden()
 
-    channel_id = f"post-{id}"
-
-    socket = websocket._get_current_object()  # pylint: disable=protected-access
-    await current_app.socket_manager.add_user_to_channel(channel_id, socket)
-
-    await send_message(
-        "connected",
-        user_id,
-        channel_id,
-        f"User {user_id} connected to room - {channel_id}",
-        data={
-            "id": user_id,
-            "name": await current_user.name,
-            "picture": str(await current_user.picture),
-            "session_id": get_session_id(user_id),
-        },
-    )
-
-    try:
+    async with MessageManager(user_id, f"post-{id}") as mm:
         while True:
             data = await websocket.receive()
-            message = {
-                "user_id": user_id,
-                "channel_id": channel_id,
-                "message": data,
-            }
-            await current_app.socket_manager.broadcast_to_channel(
-                channel_id, json.dumps(message)
-            )
-
-    except asyncio.CancelledError:
-        await current_app.socket_manager.remove_user_from_channel(channel_id, socket)
-
-        await send_message(
-            "disconnected",
-            user_id,
-            channel_id,
-            f"User {user_id} disconnected from channel - {channel_id}",
-            data={
-                "session_id": get_session_id(user_id),
-            },
-        )
-
-        raise
+            mm.send_message("message", data)

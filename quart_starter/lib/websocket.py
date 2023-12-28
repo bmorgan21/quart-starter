@@ -12,25 +12,26 @@ class WebsocketManager:
 
         Attributes:
             channels (dict): A dictionary to store Websocket connections in different channels.
-            pubsub_client (RedisPubSubManager): An instance of the PubSubManager class for pub-sub functionality.
+            pubsub_client (RedisPubSubManager): An instance of the PubSubManager class
+                for pub-sub functionality.
         """
         self.channels: dict = {}
         self.pubsub_client = pubsub_client
 
-    async def add_user_to_channel(self, channel_id: str, websocket: Websocket) -> None:
+    async def add_user_to_channel(self, channel_id: str, socket: Websocket) -> None:
         """
         Adds a user's Websocket connection to a channel.
 
         Args:
             channel_id (str): Channel ID.
-            websocket (Websocket): Websocket connection object.
+            socket (Websocket): Websocket connection object.
         """
-        await websocket.accept()
+        await socket.accept()
 
         if channel_id in self.channels:
-            self.channels[channel_id].append(websocket)
+            self.channels[channel_id].append(socket)
         else:
-            self.channels[channel_id] = [websocket]
+            self.channels[channel_id] = [socket]
 
             await self.pubsub_client.connect()
             pubsub_subscriber = await self.pubsub_client.subscribe(channel_id)
@@ -47,7 +48,7 @@ class WebsocketManager:
         await self.pubsub_client.publish(channel_id, message)
 
     async def remove_user_from_channel(
-        self, channel_id: str, websocket: Websocket
+        self, channel_id: str, socket: Websocket
     ) -> None:
         """
         Removes a user's Websocket connection from a channel.
@@ -56,7 +57,7 @@ class WebsocketManager:
             channel_id (str): Channel ID.
             websocket (Websocket): Websocket connection object.
         """
-        self.channels[channel_id].remove(websocket)
+        self.channels[channel_id].remove(socket)
 
         if len(self.channels[channel_id]) == 0:
             del self.channels[channel_id]

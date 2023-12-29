@@ -80,11 +80,10 @@ async def create(data: schemas.UserCreate) -> schemas.User:
     gravatar = get_gravatar(data.email)
 
     user = await models.User.create(
-        auth_id=data.auth_id or str(uuid.uuid4()),
         name=data.name,
         email=data.email,
         picture=gravatar,
-        role=data.role,
+        role=enums.UserRole.USER,
     )
 
     if data.password:
@@ -140,3 +139,11 @@ async def check_password(id: int, password: str) -> bool:
         base64.b64encode(hashlib.sha256(password.encode("utf-8")).digest()),
         user.hashed_password,
     )
+
+
+@handle_orm_errors
+async def set_role(id: int, role: enums.UserRole) -> None:
+    user = await models.User.get(id=id)
+    user.role = role
+
+    await user.save()

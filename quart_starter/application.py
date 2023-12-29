@@ -10,6 +10,10 @@ from quart import Quart, has_request_context, redirect, request, url_for
 from quart.templating import render_template
 from quart_auth import QuartAuth, Unauthorized
 from quart_schema import QuartSchema
+from quart_schema.extension import (
+    QUART_SCHEMA_OPERATION_ID_ATTRIBUTE,
+    QUART_SCHEMA_TAG_ATTRIBUTE,
+)
 from quart_schema.validation import (
     RequestSchemaValidationError,
     ResponseSchemaValidationError,
@@ -69,12 +73,21 @@ def register_blueprints(app):
     app.register_blueprint(ws_blueprint, url_prefix="/ws")
 
 
+class MyQuartAuth(QuartAuth):
+    def resolve_user(self) -> AuthUser:
+        auth_id = self.load_cookie()
+        if auth_id is None:
+            auth_id = self.load_bearer()
+
+        return self.user_class(auth_id)
+
+
 def create_app(**config_overrides):
     app = Quart(__name__, static_folder="static")
     app.asgi_app = ProxyMiddleware(app.asgi_app)
 
     QuartSchema(app)
-    auth_manager = QuartAuth(app)
+    auth_manager = MyQuartAuth(app)
     auth_manager.user_class = AuthUser
 
     app.config.from_object(settings)
@@ -96,7 +109,10 @@ def create_app(**config_overrides):
             func.__dict__["_quart_schema_hidden"] = True
         else:
             tag = rule.endpoint.split(".")[1]
-            setattr(func, "_quart_schema_tag", set([tag]))
+            setattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, set([tag]))
+
+            operation_id = rule.endpoint[4:].replace(".", "_")
+            setattr(func, QUART_SCHEMA_OPERATION_ID_ATTRIBUTE, operation_id)
 
             d = getattr(func, "_quart_schema_response_schemas")
             d[400] = (schemas.Errors, None)

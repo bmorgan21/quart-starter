@@ -24,11 +24,13 @@ class AuthUser(_AuthUser):
         super().__init__(auth_id)
         self._resolved = False
         self._user = None
+        self._token = None
 
     async def _resolve(self):
         if not self._resolved:
             try:
-                self._user = await actions.user.get(auth_id=self.auth_id)
+                self._token = await actions.token.get(auth_id=self.auth_id)
+                self._user = await actions.user.get(id=self._token.user_id)
                 session.pop(ANONYMOUS_USER, None)
             except ActionError as error:
                 if error.type != "action_error.not_found":
@@ -43,7 +45,7 @@ class AuthUser(_AuthUser):
                     email = name.replace(" ", ".") + "@gmail.com"
 
                     u = {
-                        "id": -1,
+                        "id": 0,
                         "auth_id": None,
                         "name": name,
                         "role": enums.UserRole.USER,
@@ -65,7 +67,7 @@ class AuthUser(_AuthUser):
 
     @property
     async def is_authenticated(self) -> bool:
-        return await super().is_authenticated and await self.id is not None
+        return await super().is_authenticated and await self.id and await self.id > 0
 
     async def has_roles(self, roles):
         return await self.is_authenticated and await self.role in roles

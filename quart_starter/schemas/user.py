@@ -1,10 +1,17 @@
 from typing import List, Optional, Union
 
-from pydantic import HttpUrl, field_validator
+from pydantic import HttpUrl, ValidationInfo, field_validator
 
 from quart_starter import enums
 
-from .helpers import NOTSET, BaseModel, EmailStr, PasswordStr, parse_list
+from .helpers import (
+    NOTSET,
+    BaseModel,
+    EmailStr,
+    PasswordStr,
+    PydanticValueError,
+    parse_list,
+)
 from .pagination import PageInfo, Pagination
 from .query import Query
 
@@ -17,13 +24,22 @@ PASSWORD_VALIDATOR = PasswordStr
 
 
 class UserCreate(BaseModel):
-    auth_id: Optional[str] = None
     name: NAME_VALIDATOR
     email: EMAIL_VALIDATOR
-    status: STATUS_VALIDATOR = enums.UserStatus.PENDING
     picture: Optional[PICTURE_VALIDATOR] = None
     password: Optional[PASSWORD_VALIDATOR] = None
-    role: ROLE_VALIDATOR = enums.UserRole.USER
+    confirm_password: Optional[str] = None
+
+    @field_validator("confirm_password")
+    @classmethod
+    def passwords_match(cls, value: str, info: ValidationInfo):
+        password = info.data.get("password")
+        confirm_password = value
+
+        if password is not None and password != confirm_password:
+            raise PydanticValueError("Passwords do not match", type="password")
+
+        return value
 
 
 class UserPatch(BaseModel):
@@ -36,7 +52,6 @@ class UserPatch(BaseModel):
 
 class User(BaseModel):
     id: int
-    auth_id: Optional[str]
     role: str
     name: str
     email: str

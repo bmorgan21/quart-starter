@@ -8,12 +8,12 @@ EMAIL_VALIDATOR = EmailStr
 PASSWORD_VALIDATOR = PasswordStr
 
 
-class LoginModel(BaseModel):
+class AuthTokenCreate(BaseModel):
     email: str
     password: str
 
 
-class SignupModel(BaseModel):
+class AuthUserCreate(BaseModel):
     email: EMAIL_VALIDATOR
     password: PASSWORD_VALIDATOR
     confirm_password: Optional[str]

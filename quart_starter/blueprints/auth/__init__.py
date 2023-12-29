@@ -2,6 +2,8 @@ from quart import Blueprint, current_app, redirect, request, url_for
 from quart.templating import render_template
 from quart_auth import current_user, logout_user
 
+from quart_starter import actions
+
 blueprint = Blueprint(
     "auth", __name__, template_folder="templates", static_folder="static"
 )
@@ -25,7 +27,10 @@ async def login():
 
 
 @blueprint.route("/logout")
-def logout():
+async def logout():
+    if await current_user.is_authenticated:
+        await actions.token.delete(auth_id=current_user.auth_id)
+
     logout_user()
     return redirect(url_for(current_app.config["AUTH_LOGOUT_SUCCESS_ENDPOINT"]))
 

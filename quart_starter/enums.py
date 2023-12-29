@@ -26,3 +26,8 @@ class Permission(EnumStr):
     READ = "read"
     UPDATE = "update"
     DELETE = "delete"
+
+
+class TokenType(EnumStr):
+    WEB = "web"
+    API = "api"

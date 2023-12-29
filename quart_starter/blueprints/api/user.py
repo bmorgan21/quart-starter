@@ -9,12 +9,21 @@ from quart_starter.lib.auth import Forbidden
 blueprint = Blueprint("user", __name__)
 
 
+@blueprint.post("/")
+@validate_request(schemas.UserCreate)
+@validate_response(schemas.User, 200)
+@atomic()
+@login_required
+async def create(data: schemas.UserCreate) -> schemas.User:
+    return await actions.user.create(data)
+
+
 @blueprint.patch("/<int:id>/")
 @validate_request(schemas.UserPatch)
 @validate_response(schemas.User, 200)
 @atomic()
 @login_required
-async def patch(id: int, data: schemas.UserPatch) -> schemas.User:
+async def update(id: int, data: schemas.UserPatch) -> schemas.User:
     user = await actions.user.get(id=id)
 
     if not actions.user.has_permission(

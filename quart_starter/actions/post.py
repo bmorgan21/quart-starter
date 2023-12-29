@@ -77,9 +77,9 @@ async def query(
 
 
 @handle_orm_errors
-async def create(author_id: int, data: schemas.PostCreate) -> schemas.Post:
+async def create(user_id: int, data: schemas.PostCreate) -> schemas.Post:
     post = await models.Post.create(
-        title=data.title, content=data.content, author_id=author_id
+        title=data.title, content=data.content, author_id=user_id
     )
 
     post.update_status(data.status)

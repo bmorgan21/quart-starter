@@ -21,7 +21,7 @@
         {% endfor %}
 
         <li class="page-item">
-            <a class="page-link {% if max_page > num_pages %}disabled{% endif %}" {% if current_page < max_page
+            <a class="page-link {% if current_page >= num_pages %}disabled{% endif %}" {% if current_page < num_pages
                 %}href="{{ base_url_for(p=current_page+1) }}" {% endif %}>Next</a>
         </li>
         <li class="page-item">

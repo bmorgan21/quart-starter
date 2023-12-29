@@ -29,9 +29,7 @@ class AuthUser(_AuthUser):
     async def _resolve(self):
         if not self._resolved:
             try:
-                self._token = await actions.token.get(
-                    auth_id=self.auth_id, resolves=[schemas.TokenResolve.USER]
-                )
+                self._token = await actions.token.get(auth_id=self.auth_id)
                 self._user = await actions.user.get(id=self._token.user_id)
                 session.pop(ANONYMOUS_USER, None)
             except ActionError as error:

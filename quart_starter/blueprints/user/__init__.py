@@ -13,17 +13,16 @@ blueprint = Blueprint(
 @blueprint.route("/<int:id>/edit/")
 @login_required
 async def update(id):
-    user = await actions.user.get(id=id)
+    user = await current_user.get_user()
+    obj = await actions.user.get(user, id=id)
 
-    if not actions.user.has_permission(
-        user, await current_user.id, await current_user.role, enums.Permission.UPDATE
-    ):
+    if not actions.user.has_permission(user, obj, enums.Permission.UPDATE):
         raise Forbidden()
 
     modal = 1 if "modal" in request.args else None
 
     return await render_template(
         "user/create.html",
-        user=user,
+        user=obj,
         base_template="modal_base.html" if modal else None,
     )

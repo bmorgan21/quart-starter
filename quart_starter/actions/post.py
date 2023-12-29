@@ -1,40 +1,39 @@
-from typing import List
+from typing import List, Union
 
-from tortoise.expressions import F
+from tortoise.expressions import F, Q
 
 from quart_starter import enums, models, schemas
-from quart_starter.lib.error import ActionError
+from quart_starter.lib.error import ActionError, ForbiddenActionError
 
 from .helpers import conditional_set, handle_orm_errors
 
 
 def has_permission(
-    post: schemas.Post,
-    user_id: int,
-    user_role: enums.UserRole,
+    user: schemas.User,
+    obj: Union[schemas.Post, None],
     permission: enums.Permission,
 ) -> bool:
     if permission == enums.Permission.CREATE:
         return True
 
     if permission == enums.Permission.READ:
-        if user_role == enums.UserRole.ADMIN:
+        if user.role == enums.UserRole.ADMIN:
             return True
-        if user_id == post.author_id:
+        if user.id == obj.author_id:
             return True
-        return post.status == enums.PostStatus.PUBLISHED
+        return obj.status == enums.PostStatus.PUBLISHED
 
     if permission == enums.Permission.UPDATE:
-        if user_role == enums.UserRole.ADMIN:
+        if user.role == enums.UserRole.ADMIN:
             return True
-        if user_id == post.author_id:
+        if user.id == obj.author_id:
             return True
         return False
 
     if permission == enums.Permission.DELETE:
-        if user_role == enums.UserRole.ADMIN:
+        if user.role == enums.UserRole.ADMIN:
             return True
-        if user_id == post.author_id:
+        if user.id == obj.author_id:
             return True
         return False
 
@@ -43,13 +42,18 @@ def has_permission(
 
 @handle_orm_errors
 async def get(
-    id: int = None, resolves: List[schemas.PostResolve] = None
+    user: schemas.User, id: int = None, resolves: List[schemas.PostResolve] = None
 ) -> schemas.Post:
     post = None
     if id:
         post = await models.Post.get(id=id)
     else:
         raise ActionError("missing lookup key", type="not_found")
+
+    if not has_permission(
+        user, schemas.Post.model_validate(post), enums.Permission.READ
+    ):
+        raise ForbiddenActionError()
 
     if resolves:
         await post.fetch_related(*resolves)
@@ -58,15 +62,10 @@ async def get(
 
 
 @handle_orm_errors
-async def query(
-    q: schemas.PostQuery, status: str = None, author_id=None
-) -> schemas.PostResultSet:
+async def query(user: schemas.User, q: schemas.PostQuery) -> schemas.PostResultSet:
     qs = models.Post.all()
-    if status:
-        qs = qs.filter(_status=status)
-
-    if author_id:
-        qs = qs.filter(author_id=author_id)
+    if user.role != enums.UserRole.ADMIN:
+        qs = qs.filter(Q(_status=enums.PostStatus.PUBLISHED) | Q(author_id=user.id))
 
     queryset, pagination = await q.queryset(qs)
 
@@ -77,9 +76,12 @@ async def query(
 
 
 @handle_orm_errors
-async def create(user_id: int, data: schemas.PostCreate) -> schemas.Post:
+async def create(user: schemas.User, data: schemas.PostCreate) -> schemas.Post:
+    if not has_permission(user, None, enums.Permission.CREATE):
+        raise ForbiddenActionError()
+
     post = await models.Post.create(
-        title=data.title, content=data.content, author_id=user_id
+        title=data.title, content=data.content, author_id=user.id
     )
 
     post.update_status(data.status)
@@ -89,14 +91,25 @@ async def create(user_id: int, data: schemas.PostCreate) -> schemas.Post:
 
 
 @handle_orm_errors
-async def delete(id: int) -> None:
+async def delete(user: schemas.User, id: int) -> None:
     post = await models.Post.get(id=id)
+
+    if not has_permission(
+        user, schemas.Post.model_validate(post), enums.Permission.DELETE
+    ):
+        raise ForbiddenActionError()
+
     await post.delete()
 
 
 @handle_orm_errors
-async def update(id: int, data: schemas.PostPatch) -> schemas.Post:
+async def update(user: schemas.User, id: int, data: schemas.PostPatch) -> schemas.Post:
     post = await models.Post.get(id=id)
+
+    if not has_permission(
+        user, schemas.Post.model_validate(post), enums.Permission.UPDATE
+    ):
+        raise ForbiddenActionError()
 
     conditional_set(post, "title", data.title)
     conditional_set(post, "content", data.content)

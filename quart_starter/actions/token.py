@@ -1,39 +1,38 @@
 import uuid
-from typing import List
+from typing import List, Union
 
 from quart_starter import enums, models, schemas
-from quart_starter.lib.error import ActionError
+from quart_starter.lib.error import ActionError, ForbiddenActionError
 
 from .helpers import conditional_set, handle_orm_errors
 
 
 def has_permission(
-    token: schemas.Token,
-    user_id: int,
-    user_role: enums.UserRole,
+    user: schemas.User,
+    obj: Union[schemas.Token, None],
     permission: enums.Permission,
 ) -> bool:
     if permission == enums.Permission.CREATE:
         return True
 
     if permission == enums.Permission.READ:
-        if user_role == enums.UserRole.ADMIN:
+        if user.role == enums.UserRole.ADMIN:
             return True
-        if user_id == token.user_id:
+        if user.id == obj.user_id:
             return True
         return False
 
     if permission == enums.Permission.UPDATE:
-        if user_role == enums.UserRole.ADMIN:
+        if user.role == enums.UserRole.ADMIN:
             return True
-        if user_id == token.user_id:
+        if user.id == obj.user_id:
             return True
         return False
 
     if permission == enums.Permission.DELETE:
-        if user_role == enums.UserRole.ADMIN:
+        if user.role == enums.UserRole.ADMIN:
             return True
-        if user_id == token.user_id:
+        if user.id == obj.user_id:
             return True
         return False
 
@@ -42,7 +41,10 @@ def has_permission(
 
 @handle_orm_errors
 async def get(
-    id: int = None, auth_id: int = None, resolves: List[schemas.TokenResolve] = None
+    user: schemas.User,
+    id: int = None,
+    auth_id: int = None,
+    resolves: List[schemas.TokenResolve] = None,
 ) -> schemas.Post:
     token = None
     if id:
@@ -52,6 +54,11 @@ async def get(
     else:
         raise ActionError("missing lookup key", type="not_found")
 
+    if not has_permission(
+        user, schemas.Token.model_validate(token), enums.Permission.READ
+    ):
+        raise ForbiddenActionError()
+
     if resolves:
         await token.fetch_related(*resolves)
 
@@ -59,7 +66,11 @@ async def get(
 
 
 @handle_orm_errors
-async def query(q: schemas.TokenQuery) -> schemas.TokenResultSet:
+async def query(user: schemas.User, q: schemas.TokenQuery) -> schemas.TokenResultSet:
+    qs = models.Token.all()
+    if user.role != enums.UserRole.ADMIN:
+        qs = qs.filter(user_id=user.id)
+
     queryset, pagination = await q.queryset(models.Token)
 
     return schemas.TokenResultSet(
@@ -70,10 +81,13 @@ async def query(q: schemas.TokenQuery) -> schemas.TokenResultSet:
 
 @handle_orm_errors
 async def create(
-    user_id: int, type: enums.TokenType, data: schemas.TokenCreate
+    user: schemas.User, type: enums.TokenType, data: schemas.TokenCreate
 ) -> schemas.TokenCreateSuccess:
+    if not has_permission(user, None, enums.Permission.CREATE):
+        raise ForbiddenActionError()
+
     token = await models.Token.create(
-        type=type, name=data.name, auth_id=str(uuid.uuid4()), user_id=user_id
+        type=type, name=data.name, auth_id=str(uuid.uuid4()), user_id=user.id
     )
 
     await token.save()
@@ -82,21 +96,25 @@ async def create(
 
 
 @handle_orm_errors
-async def delete(id: int = None, auth_id: int = None) -> None:
-    token = None
-    if id:
-        token = await models.Token.get(id=id)
-    elif auth_id:
-        token = await models.Token.get(auth_id=auth_id)
-    else:
-        raise ActionError("missing lookup key", type="not_found")
+async def delete(user: schemas.User, id: int) -> None:
+    token = await models.Token.get(id=id)
+
+    if not has_permission(
+        user, schemas.Token.model_validate(token), enums.Permission.DELETE
+    ):
+        raise ForbiddenActionError()
 
     await token.delete()
 
 
 @handle_orm_errors
-async def update(id: int, data: schemas.TokenPatch) -> schemas.Post:
+async def update(user: schemas.User, id: int, data: schemas.TokenPatch) -> schemas.Post:
     token = await models.Token.get(id=id)
+
+    if not has_permission(
+        user, schemas.Token.model_validate(token), enums.Permission.UPDATE
+    ):
+        raise ForbiddenActionError()
 
     conditional_set(token, "name", data.name)
 

@@ -5,10 +5,8 @@ from typing import Any, Callable
 from quart import current_app, session
 from quart_auth import AuthUser as _AuthUser
 from quart_auth import Unauthorized, current_user
-from unique_names_generator import get_random_name
-from unique_names_generator.data import ADJECTIVES, ANIMALS
 
-from quart_starter import actions, enums, schemas
+from quart_starter import actions, schemas
 
 from .error import ActionError
 
@@ -28,9 +26,10 @@ class AuthUser(_AuthUser):
 
     async def _resolve(self):
         if not self._resolved:
+            system_user = schemas.User.system_user()
             try:
-                self._token = await actions.token.get(auth_id=self.auth_id)
-                self._user = await actions.user.get(id=self._token.user_id)
+                self._token = await actions.token.get(system_user, auth_id=self.auth_id)
+                self._user = await actions.user.get(system_user, id=self._token.user_id)
                 session.pop(ANONYMOUS_USER, None)
             except ActionError as error:
                 if error.type != "action_error.not_found":
@@ -38,24 +37,10 @@ class AuthUser(_AuthUser):
 
                 try:
                     u = json.loads(session[ANONYMOUS_USER])
+                    self._user = schemas.User.model_validate(u)
                 except (KeyError, json.decoder.JSONDecodeError):
-                    name = get_random_name(
-                        combo=[ADJECTIVES, ANIMALS], style="lowercase"
-                    )
-                    email = name.replace(" ", ".") + "@gmail.com"
-
-                    u = {
-                        "id": 0,
-                        "auth_id": None,
-                        "name": name,
-                        "role": enums.UserRole.USER,
-                        "email": email,
-                        "status": enums.UserStatus.PENDING,
-                        "picture": actions.user.get_gravatar(email),
-                    }
-                    session[ANONYMOUS_USER] = json.dumps(u)
-
-                self._user = schemas.User.model_validate(u)
+                    self._user = schemas.User.anonymous_user()
+                    session[ANONYMOUS_USER] = json.dumps(self._user.model_dump())
 
             self._resolved = True
 
@@ -75,6 +60,10 @@ class AuthUser(_AuthUser):
     async def get_user(self):
         await self._resolve()
         return self._user
+
+    async def get_token(self):
+        await self._resolve()
+        return self._token
 
 
 def roles_accepted(*role_names) -> Callable:

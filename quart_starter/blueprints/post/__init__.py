@@ -3,7 +3,7 @@ import json
 import uuid
 from typing import Any
 
-from quart import Blueprint, current_app, url_for, websocket
+from quart import Blueprint, current_app, redirect, url_for, websocket
 from quart.templating import render_template
 from quart_auth import current_user, login_required
 from quart_schema import validate_querystring
@@ -18,57 +18,32 @@ blueprint = Blueprint("post", __name__, template_folder="templates")
 @blueprint.route("/")
 @validate_querystring(schemas.PostQueryString)
 async def index(query_args: schemas.PostQueryString):
-    resultset = await actions.post.query(
-        query_args.to_query(resolves=["author"]),
-        status=enums.PostStatus.PUBLISHED,
-    )
+    if not query_args.status:
+        return redirect(url_for(".index", status=enums.PostStatus.PUBLISHED))
+    user = await current_user.get_user()
+    resultset = await actions.post.query(user, query_args.to_query(resolves=["author"]))
+
+    subtab = query_args.status
+    if query_args.author_id == user.id:
+        subtab = f"mine-{subtab}"
 
     return await render_template(
-        "post/index.html", resultset=resultset, tab="blog", subtab="all"
-    )
-
-
-@blueprint.route("/mine")
-@validate_querystring(schemas.PostQueryString)
-@login_required
-async def mine(query_args: schemas.PostQueryString):
-    resultset = await actions.post.query(
-        query_args.to_query(resolves=["author"]),
-        author_id=await current_user.id,
-    )
-
-    return await render_template(
-        "post/index.html",
-        resultset=resultset,
-        tab="blog",
-        subtab="mine"
-        if query_args.status == enums.PostStatus.PUBLISHED
-        else "mine-pending",
+        "post/index.html", resultset=resultset, tab="blog", subtab=subtab
     )
 
 
 @blueprint.route("/<int:id>")
 async def view(id: int):
-    post = await actions.post.get(id=id, resolves=["author"])
-
-    user_id = await current_user.id
-    user_role = await current_user.role
-
-    if not actions.post.has_permission(post, user_id, user_role, enums.Permission.READ):
-        raise Forbidden()
+    user = await current_user.get_user()
+    post = await actions.post.get(user, id=id, resolves=["author"])
 
     await actions.post.update_viewed(id)
     post.viewed += 1  # make sure the user sees their view
 
-    mm = MessageManager(
-        await current_user.get_user(),
-        f"post-{id}",
-    )
-    await mm.send_message("view", f"User {user_id} viewed page", post.viewed)
+    mm = MessageManager(user, f"post-{id}")
+    await mm.send_message("view", f"User {user.id} viewed page", post.viewed)
 
-    can_edit = actions.post.has_permission(
-        post, await current_user.id, await current_user.role, enums.Permission.UPDATE
-    )
+    can_edit = actions.post.has_permission(user, post, enums.Permission.UPDATE)
 
     return await render_template("post/view.html", post=post, can_edit=can_edit)
 
@@ -76,18 +51,14 @@ async def view(id: int):
 @blueprint.route("/create/")
 @login_required
 async def create():
-    user_id = await current_user.id
-    user_role = await current_user.role
-
-    if not actions.post.has_permission(
-        None, user_id, user_role, enums.Permission.CREATE
-    ):
+    user = await current_user.get_user()
+    if not actions.post.has_permission(user, None, enums.Permission.CREATE):
         raise Forbidden()
 
     return await render_template(
         "post/create.html",
         status_options=[(x.value.title(), x.value) for x in enums.PostStatus],
-        r=url_for(".index"),
+        r=url_for(".index", status="{-status-}", author_id=user.id),
         tab="blog",
     )
 
@@ -95,14 +66,10 @@ async def create():
 @blueprint.route("/<int:id>/edit/")
 @login_required
 async def update(id: int):
-    post = await actions.post.get(id=id)
+    user = await current_user.get_user()
+    post = await actions.post.get(user, id=id)
 
-    user_id = await current_user.id
-    user_role = await current_user.role
-
-    if not actions.post.has_permission(
-        post, user_id, user_role, enums.Permission.UPDATE
-    ):
+    if not actions.post.has_permission(user, post, enums.Permission.UPDATE):
         raise Forbidden()
 
     return await render_template(
@@ -116,16 +83,14 @@ async def update(id: int):
 
 @blueprint.websocket("/<int:id>/ws")
 async def ws(id: int) -> None:
-    post = await actions.post.get(id=id)
+    user = await current_user.get_user()
+    post = await actions.post.get(user, id=id)
 
-    user_id = await current_user.id
-    user_role = await current_user.role
-
-    if not actions.post.has_permission(post, user_id, user_role, enums.Permission.READ):
+    if not actions.post.has_permission(user, post, enums.Permission.READ):
         raise Forbidden()
 
     async with MessageManager(
-        await current_user.get_user(),
+        user,
         f"post-{id}",
         session_id=websocket.args.get("SESSION_ID"),
     ) as mm:

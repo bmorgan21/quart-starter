@@ -1,6 +1,9 @@
+import hashlib
 from typing import List, Optional, Union
 
 from pydantic import HttpUrl, ValidationInfo, field_validator
+from unique_names_generator import get_random_name
+from unique_names_generator.data import ADJECTIVES, ANIMALS
 
 from quart_starter import enums
 
@@ -28,18 +31,6 @@ class UserCreate(BaseModel):
     email: EMAIL_VALIDATOR
     picture: Optional[PICTURE_VALIDATOR] = None
     password: Optional[PASSWORD_VALIDATOR] = None
-    confirm_password: Optional[str] = None
-
-    @field_validator("confirm_password")
-    @classmethod
-    def passwords_match(cls, value: str, info: ValidationInfo):
-        password = info.data.get("password")
-        confirm_password = value
-
-        if password is not None and password != confirm_password:
-            raise PydanticValueError("Passwords do not match", type="password")
-
-        return value
 
 
 class UserPatch(BaseModel):
@@ -57,6 +48,40 @@ class User(BaseModel):
     email: str
     status: str
     picture: Optional[PICTURE_VALIDATOR]
+
+    @classmethod
+    def system_user(cls):
+        email = "system@example.com"
+
+        return cls(
+            id=0,
+            auth_id=None,
+            name="System User",
+            role=enums.UserRole.ADMIN,
+            email=email,
+            status=enums.UserStatus.ACTIVE,
+            picture=cls.get_gravatar(email),
+        )
+
+    @classmethod
+    def anonymous_user(cls):
+        name = get_random_name(combo=[ADJECTIVES, ANIMALS], style="lowercase")
+        email = name.replace(" ", ".") + "@gmail.com"
+
+        return cls(
+            id=0,
+            auth_id=None,
+            name=name,
+            role=enums.UserRole.USER,
+            email=email,
+            status=enums.UserStatus.PENDING,
+            picture=cls.get_gravatar(email),
+        )
+
+    @classmethod
+    def get_gravatar(cls, email):
+        md5_hash = hashlib.md5(email.encode()).hexdigest()
+        return f"https://www.gravatar.com/avatar/{md5_hash}?s=100&d=identicon"
 
 
 class UserFilterField(enums.EnumStr):

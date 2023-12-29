@@ -78,17 +78,18 @@ async def callback():
 
     email = id_info.get("email")
     try:
-        user = await actions.user.get(email=email)
+        user = await actions.user.get(schemas.User.system_user(), email=email)
     except ActionError as error:
         if error.type == "action_error.does_not_exist":
             user = await actions.user.create(
-                schemas.UserCreate(name=id_info["name"], email=id_info["email"])
+                schemas.User.system_user(),
+                schemas.UserCreate(name=id_info["name"], email=id_info["email"]),
             )
         else:
             raise
 
     token = await actions.token.create(
-        user.id, enums.TokenType.WEB, schemas.TokenCreate(name="Web Login")
+        user, enums.TokenType.WEB, schemas.TokenCreate(name="Web Login")
     )
 
     login_user(AuthUser(token.auth_id))

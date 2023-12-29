@@ -5,9 +5,10 @@ from typing_extensions import Annotated
 
 from quart_starter import enums
 
-from .helpers import BaseModel, parse_list
+from .helpers import BaseModel, parse_list, remove_queryset
 from .pagination import PageInfo, Pagination
 from .query import Query
+from .user import User
 
 TYPE_VALIDATOR = enums.TokenType
 NAME_VALIDATOR = Annotated[str, StringConstraints(min_length=1, max_length=32)]
@@ -34,6 +35,9 @@ class Token(BaseModel):
     type: str
     name: str
     user_id: int
+    user: Optional[User]
+
+    _remove_queryset = field_validator("user", mode="before")(remove_queryset)
 
 
 class TokenFilterField(enums.EnumStr):

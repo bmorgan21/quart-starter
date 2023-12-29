@@ -8,7 +8,7 @@ from quart_starter import actions, schemas
 blueprint = Blueprint("user", __name__)
 
 
-@blueprint.post("/")
+@blueprint.post("")
 @validate_request(schemas.UserCreate)
 @validate_response(schemas.User, 200)
 @atomic()
@@ -17,7 +17,7 @@ async def create(data: schemas.UserCreate) -> schemas.User:
     return await actions.user.create(await current_user.get_user(), data)
 
 
-@blueprint.patch("/<int:id>/")
+@blueprint.patch("/<int:id>")
 @validate_request(schemas.UserPatch)
 @validate_response(schemas.User, 200)
 @atomic()

@@ -36,7 +36,6 @@ async def get(
     user: schemas.User,
     id: int = None,
     email: str = None,
-    auth_id: str = None,
     resolves: List[schemas.UserResolve] = None,
 ) -> schemas.User:
     obj = None
@@ -44,8 +43,6 @@ async def get(
         obj = await models.User.get(id=id)
     elif email:
         obj = await models.User.get(email=email)
-    elif auth_id:
-        obj = await models.User.get(auth_id=auth_id)
     else:
         raise ActionError("missing lookup key", type="not_found")
 

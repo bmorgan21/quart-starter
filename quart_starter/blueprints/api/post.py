@@ -1,6 +1,6 @@
 from quart import Blueprint
 from quart_auth import current_user, login_required
-from quart_schema import validate_request, validate_response
+from quart_schema import validate_querystring, validate_request, validate_response
 from tortoise.transactions import atomic
 
 from quart_starter import actions, schemas
@@ -8,7 +8,7 @@ from quart_starter import actions, schemas
 blueprint = Blueprint("post", __name__)
 
 
-@blueprint.post("/")
+@blueprint.post("")
 @validate_request(schemas.PostCreate)
 @validate_response(schemas.Post, 201)
 @atomic()
@@ -17,7 +17,26 @@ async def create(data: schemas.PostCreate) -> schemas.Post:
     return await actions.post.create(await current_user.get_user(), data), 201
 
 
-@blueprint.patch("/<int:id>/")
+@blueprint.get("/<int:id>")
+@validate_response(schemas.Post, 200)
+@atomic()
+@login_required
+async def read(id: int) -> schemas.Post:
+    return await actions.post.get(await current_user.get_user(), id=id), 200
+
+
+@blueprint.get("")
+@validate_querystring(schemas.PostQueryString)
+@validate_response(schemas.PostResultSet, 200)
+@atomic()
+@login_required
+async def read_many(query_args: schemas.PostQueryString) -> schemas.PostResultSet:
+    return await actions.post.query(
+        await current_user.get_user(), query_args.to_query()
+    )
+
+
+@blueprint.patch("/<int:id>")
 @validate_request(schemas.PostPatch)
 @validate_response(schemas.Post, 200)
 @atomic()
@@ -26,7 +45,7 @@ async def update(id: int, data: schemas.PostPatch) -> schemas.Post:
     return await actions.post.update(await current_user.get_user(), id, data)
 
 
-@blueprint.delete("/<int:id>/")
+@blueprint.delete("/<int:id>")
 @validate_response(schemas.DeleteConfirmed, 200)
 @atomic()
 @login_required

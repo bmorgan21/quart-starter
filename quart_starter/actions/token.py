@@ -71,7 +71,7 @@ async def query(user: schemas.User, q: schemas.TokenQuery) -> schemas.TokenResul
     if user.role != enums.UserRole.ADMIN:
         qs = qs.filter(user_id=user.id)
 
-    queryset, pagination = await q.queryset(models.Token)
+    queryset, pagination = await q.queryset(qs)
 
     return schemas.TokenResultSet(
         pagination=pagination,

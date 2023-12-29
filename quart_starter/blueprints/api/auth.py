@@ -10,7 +10,7 @@ from quart_starter.lib.error import ActionError
 blueprint = Blueprint("auth", __name__)
 
 
-@blueprint.post("/token/")
+@blueprint.post("/token")
 @validate_request(schemas.AuthTokenCreate)
 @validate_response(schemas.TokenCreateSuccess, 200)
 @atomic()
@@ -38,7 +38,7 @@ async def token_create(data: schemas.AuthTokenCreate) -> schemas.TokenCreateSucc
     raise ActionError("invalid email or password", loc="password")
 
 
-@blueprint.post("/user/")
+@blueprint.post("/user")
 @validate_request(schemas.AuthUserCreate)
 @validate_response(schemas.User, 200)
 @atomic()

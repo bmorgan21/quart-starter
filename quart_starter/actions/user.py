@@ -1,6 +1,5 @@
 import base64
 import hashlib
-import uuid
 from typing import List
 
 import bcrypt

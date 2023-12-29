@@ -1,8 +1,6 @@
 import uuid
 from typing import List
 
-from tortoise.expressions import F
-
 from quart_starter import enums, models, schemas
 from quart_starter.lib.error import ActionError
 

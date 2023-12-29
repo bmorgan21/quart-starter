@@ -9,8 +9,7 @@ class Query:
     resolves: Any
     page_info: PageInfo
 
-    async def queryset(self, model):
-        queryset = model.all()
+    async def apply(self, queryset):
         if self.filters:
             queryset = queryset.filter(**{x.field: x.value for x in self.filters})
 

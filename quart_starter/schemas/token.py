@@ -62,7 +62,6 @@ class TokenQuery(BaseModel, Query):
     filters: List[TokenFilter] = []
     sorts: List[TokenSort] = [TokenSort.ID_ASC]
     resolves: Optional[List[TokenResolve]] = []
-    page_info: PageInfo
 
 
 class TokenQueryStringSort(enums.EnumStr):

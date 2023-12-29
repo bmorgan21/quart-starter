@@ -1,20 +1,13 @@
 import hashlib
 from typing import List, Optional, Union
 
-from pydantic import HttpUrl, ValidationInfo, field_validator
+from pydantic import HttpUrl, field_validator
 from unique_names_generator import get_random_name
 from unique_names_generator.data import ADJECTIVES, ANIMALS
 
 from quart_starter import enums
 
-from .helpers import (
-    NOTSET,
-    BaseModel,
-    EmailStr,
-    PasswordStr,
-    PydanticValueError,
-    parse_list,
-)
+from .helpers import NOTSET, BaseModel, EmailStr, PasswordStr, parse_list
 from .pagination import PageInfo, Pagination
 from .query import Query
 
@@ -110,7 +103,6 @@ class UserQuery(BaseModel, Query):
     filters: List[UserFilter] = []
     sorts: List[UserSort] = [UserSort.ID_ASC]
     resolves: Optional[List[UserResolve]] = []
-    page_info: PageInfo
 
 
 class UserQueryStringSort(enums.EnumStr):

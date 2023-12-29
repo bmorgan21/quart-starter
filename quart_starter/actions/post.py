@@ -67,7 +67,7 @@ async def query(user: schemas.User, q: schemas.PostQuery) -> schemas.PostResultS
     if user.role != enums.UserRole.ADMIN:
         qs = qs.filter(Q(_status=enums.PostStatus.PUBLISHED) | Q(author_id=user.id))
 
-    queryset, pagination = await q.queryset(qs)
+    queryset, pagination = await q.apply(qs)
 
     return schemas.PostResultSet(
         pagination=pagination,

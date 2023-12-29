@@ -74,7 +74,6 @@ class PostQuery(BaseModel, Query):
     filters: List[PostFilter] = []
     sorts: List[PostSort] = [PostSort.ID_ASC]
     resolves: Optional[List[PostResolve]] = []
-    page_info: PageInfo
 
 
 class PostQueryStringSort(enums.EnumStr):

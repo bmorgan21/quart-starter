@@ -4,7 +4,7 @@
 {% block content %}
 <div class="form-signin w-100 m-auto">
     <div style="width:330px" class="m-auto">
-        <form class="ajax" method="POST" action="{{ url_for('api.auth.signup') }}">
+        <form class="ajax" method="POST" action="{{ url_for('api.auth.user_create') }}">
             <input name="r" type="hidden" value="{{ r }}" />
             <h3 class="mb-3 fw-normal">Sign Up</h3>
 

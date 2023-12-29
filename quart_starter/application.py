@@ -159,9 +159,14 @@ def create_app(**config_overrides):
                 ),
                 400,
             )
+
         return (
             schemas.Errors(
-                errors=[schemas.Error(loc="page", type="VALIDATION", msg=str(error))]
+                errors=[
+                    schemas.Error(
+                        loc="page", type="VALIDATION", msg="Invalid Response Type"
+                    )
+                ]
             ),
             400,
         )

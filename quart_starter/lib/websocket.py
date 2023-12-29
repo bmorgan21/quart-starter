@@ -17,6 +17,7 @@ class WebsocketManager:
         """
         self.channels: dict = {}
         self.pubsub_client = pubsub_client
+        self.task_initialized = False
 
     async def add_user_to_channel(self, channel_id: str, socket: Websocket) -> None:
         """
@@ -35,7 +36,9 @@ class WebsocketManager:
 
             await self.pubsub_client.connect()
             pubsub_subscriber = await self.pubsub_client.subscribe(channel_id)
-            asyncio.create_task(self._pubsub_data_reader(pubsub_subscriber))
+            if not self.task_initialized:
+                self.task_initialized = True
+                asyncio.create_task(self._pubsub_data_reader(pubsub_subscriber))
 
     async def broadcast_to_channel(self, channel_id: str, message: str) -> None:
         """

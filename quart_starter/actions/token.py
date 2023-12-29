@@ -71,9 +71,11 @@ async def query(q: schemas.TokenQuery) -> schemas.TokenResultSet:
 
 
 @handle_orm_errors
-async def create(user_id: int, data: schemas.TokenCreate) -> schemas.TokenCreateSuccess:
+async def create(
+    user_id: int, type: enums.TokenType, data: schemas.TokenCreate
+) -> schemas.TokenCreateSuccess:
     token = await models.Token.create(
-        type=data.type, name=data.name, auth_id=str(uuid.uuid4()), user_id=user_id
+        type=type, name=data.name, auth_id=str(uuid.uuid4()), user_id=user_id
     )
 
     await token.save()
@@ -82,8 +84,15 @@ async def create(user_id: int, data: schemas.TokenCreate) -> schemas.TokenCreate
 
 
 @handle_orm_errors
-async def delete(id: int) -> None:
-    token = await models.Token.get(id=id)
+async def delete(id: int = None, auth_id: int = None) -> None:
+    token = None
+    if id:
+        token = await models.Token.get(id=id)
+    elif auth_id:
+        token = await models.Token.get(auth_id=auth_id)
+    else:
+        raise ActionError("missing lookup key", type="not_found")
+
     await token.delete()
 
 

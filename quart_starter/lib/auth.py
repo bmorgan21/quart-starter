@@ -78,10 +78,6 @@ class AuthUser(_AuthUser):
         await self._resolve()
         return self._user
 
-    async def get_token(self):
-        await self._resolve()
-        return self._token
-
 
 def roles_accepted(*role_names) -> Callable:
     def wrapper(func: Callable) -> Callable:

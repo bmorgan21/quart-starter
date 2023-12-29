@@ -23,7 +23,6 @@ NAME_VALIDATOR = Annotated[str, StringConstraints(min_length=1, max_length=32)]
 
 
 class TokenCreate(BaseModel):
-    type: TYPE_VALIDATOR
     name: NAME_VALIDATOR
 
 
@@ -32,6 +31,7 @@ class TokenCreateSuccess(BaseModel):
     type: str
     name: str
     auth_id: str
+    user_id: int
 
 
 class TokenPatch(BaseModel):

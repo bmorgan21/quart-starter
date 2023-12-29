@@ -1,4 +1,4 @@
-from quart import Blueprint
+from quart import Blueprint, current_app
 from quart_auth import current_user, login_required
 from quart_schema import validate_request, validate_response
 from tortoise.transactions import atomic
@@ -15,12 +15,16 @@ blueprint = Blueprint("token", __name__)
 @atomic()
 @login_required
 async def create(data: schemas.TokenCreate) -> schemas.TokenCreateSuccess:
-    if not actions.user.has_permission(
+    if not actions.token.has_permission(
         None, await current_user.id, await current_user.role, enums.Permission.CREATE
     ):
         raise Forbidden()
 
-    return await actions.token.create(await current_user.id, data)
+    token = await actions.token.create(await current_user.id, enums.TokenType.API, data)
+
+    token.auth_id = current_app.extensions["QUART_AUTH"][0].dump_token(token.auth_id)
+
+    return token
 
 
 @blueprint.patch("/<int:id>/")
@@ -31,9 +35,9 @@ async def create(data: schemas.TokenCreate) -> schemas.TokenCreateSuccess:
 async def update(id: int, data: schemas.TokenPatch) -> schemas.Token:
     token = await actions.token.get(id=id)
 
-    if not actions.user.has_permission(
+    if not actions.token.has_permission(
         token, await current_user.id, await current_user.role, enums.Permission.UPDATE
     ):
         raise Forbidden()
 
-    return await actions.user.update(id, data)
+    return await actions.token.update(id, data)

@@ -28,9 +28,8 @@ async def login():
 
 @blueprint.route("/logout")
 async def logout():
-    token = await current_user.get_token()
-    if token:
-        await actions.token.delete(token.id)
+    if await current_user.is_authenticated:
+        await actions.token.delete(auth_id=current_user.auth_id)
 
     logout_user()
     return redirect(url_for(current_app.config["AUTH_LOGOUT_SUCCESS_ENDPOINT"]))

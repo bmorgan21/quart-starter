@@ -13,12 +13,9 @@ blueprint = Blueprint("user", __name__)
 @validate_request(schemas.UserCreate)
 @validate_response(schemas.User, 200)
 @atomic()
+@login_required
 async def create(data: schemas.UserCreate) -> schemas.User:
-    user = await actions.user.create(data)
-
-    # TODO: figure this out
-    # login_user(AuthUser(user.auth_id))
-    return user
+    return await actions.user.create(data)
 
 
 @blueprint.patch("/<int:id>/")

@@ -112,15 +112,6 @@ async def update(id: int, data: schemas.UserPatch) -> schemas.User:
 
 
 @handle_orm_errors
-async def update_auth_id(id: int) -> schemas.User:
-    user = await models.User.get(id=id)
-    user.auth_id = str(uuid.uuid4())
-    await user.save()
-
-    return schemas.User.model_validate(user)
-
-
-@handle_orm_errors
 async def set_password(id: int, password: str) -> None:
     user = await models.User.get(id=id)
 

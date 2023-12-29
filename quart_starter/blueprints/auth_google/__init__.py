@@ -9,7 +9,8 @@ from quart import Blueprint, abort, current_app, redirect, request, session, url
 from quart_auth import AuthUser, login_user
 from quart_schema import hide
 
-from quart_starter import actions, schemas
+from quart_starter import actions, enums, schemas
+from quart_starter.lib.error import ActionError
 
 blueprint = Blueprint("google_auth", __name__, template_folder="templates")
 
@@ -76,15 +77,21 @@ async def callback():
     print("!! ", id_info)
 
     email = id_info.get("email")
-    user = await actions.user.get(email=email)
-    if not user:
-        user = await actions.user.create(
-            schemas.UserCreate(name=id_info["name"], email=id_info["email"])
-        )
-    else:
-        user = await actions.user.update_auth_id(id=user.id)
+    try:
+        user = await actions.user.get(email=email)
+    except ActionError as error:
+        if error.type == "action_error.does_not_exist":
+            user = await actions.user.create(
+                schemas.UserCreate(name=id_info["name"], email=id_info["email"])
+            )
+        else:
+            raise
 
-    login_user(AuthUser(user.auth_id))
+    token = await actions.token.create(
+        user.id, enums.TokenType.WEB, schemas.TokenCreate(name="Web Login")
+    )
+
+    login_user(AuthUser(token.auth_id))
     return redirect(
         session.pop("next", url_for(current_app.config["AUTH_LOGIN_SUCCESS_ENDPOINT"]))
     )

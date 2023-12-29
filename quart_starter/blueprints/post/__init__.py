@@ -3,7 +3,7 @@ import json
 import uuid
 from typing import Any
 
-from quart import Blueprint, current_app, url_for, websocket
+from quart import Blueprint, current_app, redirect, url_for, websocket
 from quart.templating import render_template
 from quart_auth import current_user, login_required
 from quart_schema import validate_querystring
@@ -18,6 +18,8 @@ blueprint = Blueprint("post", __name__, template_folder="templates")
 @blueprint.route("/")
 @validate_querystring(schemas.PostQueryString)
 async def index(query_args: schemas.PostQueryString):
+    if not query_args.status:
+        return redirect(url_for(".index", status=enums.PostStatus.PUBLISHED))
     user = await current_user.get_user()
     resultset = await actions.post.query(user, query_args.to_query(resolves=["author"]))
 

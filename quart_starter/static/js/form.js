@@ -51,9 +51,11 @@ function defaultFormCallback(form, data) {
         const regex = /%7B-.*?-%7D/g;
         let url = rInput.value.replace('{ID}', data['id']);
         let matches = url.match(regex);
-        matches.forEach(s => {
-            url = url.replace(s, data[s.substring(4, s.length - 4)])
-        });
+        if (matches) {
+            matches.forEach(s => {
+                url = url.replace(s, data[s.substring(4, s.length - 4)])
+            });
+        }
 
         if (target == '_top') {
             window.location.replace(url);

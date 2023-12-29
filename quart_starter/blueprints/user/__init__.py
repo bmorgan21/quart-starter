@@ -14,7 +14,7 @@ blueprint = Blueprint(
 @login_required
 async def update(id):
     user = await current_user.get_user()
-    obj = await actions.user.get(id=id)
+    obj = await actions.user.get(user, id=id)
 
     if not actions.user.has_permission(user, obj, enums.Permission.UPDATE):
         raise Forbidden()

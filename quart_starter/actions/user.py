@@ -87,7 +87,7 @@ async def create(user: schemas.User, data: schemas.UserCreate) -> schemas.User:
 
     if data.password:
         obj.set_password(data.password)
-        obj.save()
+        await obj.save()
 
     return schemas.User.model_validate(obj)
 

@@ -26,10 +26,10 @@ class AuthUser(_AuthUser):
 
     async def _resolve(self):
         if not self._resolved:
-            admin_user = schemas.User.admin_user()
+            system_user = schemas.User.system_user()
             try:
-                self._token = await actions.token.get(admin_user, auth_id=self.auth_id)
-                self._user = await actions.user.get(admin_user, id=self._token.user_id)
+                self._token = await actions.token.get(system_user, auth_id=self.auth_id)
+                self._user = await actions.user.get(system_user, id=self._token.user_id)
                 session.pop(ANONYMOUS_USER, None)
             except ActionError as error:
                 if error.type != "action_error.not_found":

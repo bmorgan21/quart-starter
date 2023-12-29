@@ -79,7 +79,7 @@ async def create(user: schemas.User, data: schemas.UserCreate) -> schemas.User:
     if not has_permission(user, None, enums.Permission.CREATE):
         raise ForbiddenActionError()
 
-    gravatar = schemas.User.get_gravatar(data.email)
+    gravatar = data.picture or schemas.User.get_gravatar(data.email)
 
     obj = await models.User.create(
         name=data.name, email=data.email, picture=gravatar, role=enums.UserRole.USER

@@ -78,11 +78,11 @@ async def callback():
 
     email = id_info.get("email")
     try:
-        user = await actions.user.get(schemas.User.admin_user(), email=email)
+        user = await actions.user.get(schemas.User.system_user(), email=email)
     except ActionError as error:
         if error.type == "action_error.does_not_exist":
             user = await actions.user.create(
-                schemas.User.admin_user(),
+                schemas.User.system_user(),
                 schemas.UserCreate(name=id_info["name"], email=id_info["email"]),
             )
         else:

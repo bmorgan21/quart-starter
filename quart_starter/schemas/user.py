@@ -31,18 +31,6 @@ class UserCreate(BaseModel):
     email: EMAIL_VALIDATOR
     picture: Optional[PICTURE_VALIDATOR] = None
     password: Optional[PASSWORD_VALIDATOR] = None
-    confirm_password: Optional[str] = None
-
-    @field_validator("confirm_password")
-    @classmethod
-    def passwords_match(cls, value: str, info: ValidationInfo):
-        password = info.data.get("password")
-        confirm_password = value
-
-        if password is not None and password != confirm_password:
-            raise PydanticValueError("Passwords do not match", type="password")
-
-        return value
 
 
 class UserPatch(BaseModel):
@@ -62,13 +50,13 @@ class User(BaseModel):
     picture: Optional[PICTURE_VALIDATOR]
 
     @classmethod
-    def admin_user(cls):
-        email = "admin@example.com"
+    def system_user(cls):
+        email = "system@example.com"
 
         return cls(
             id=0,
             auth_id=None,
-            name="Admin User",
+            name="System User",
             role=enums.UserRole.ADMIN,
             email=email,
             status=enums.UserStatus.ACTIVE,

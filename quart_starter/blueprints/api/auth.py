@@ -17,7 +17,7 @@ blueprint = Blueprint("auth", __name__)
 async def token_create(data: schemas.AuthTokenCreate) -> schemas.TokenCreateSuccess:
     user = None
     try:
-        user = await actions.user.get(schemas.User.admin_user(), email=data.email)
+        user = await actions.user.get(schemas.User.system_user(), email=data.email)
     except ActionError as error:
         if error.type != "action_error.does_not_exist":
             raise
@@ -44,7 +44,7 @@ async def token_create(data: schemas.AuthTokenCreate) -> schemas.TokenCreateSucc
 @atomic()
 async def user_create(data: schemas.AuthUserCreate) -> schemas.User:
     user = await actions.user.create(
-        schemas.User.admin_user(),
+        schemas.User.system_user(),
         schemas.UserCreate(name=data.email, email=data.email, password=data.password),
     )
 

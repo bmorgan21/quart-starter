@@ -100,7 +100,7 @@ async def delete(user: schemas.User, id: int) -> None:
     token = await models.Token.get(id=id)
 
     if not has_permission(
-        user, schemas.User.model_validate(token), enums.Permission.DELETE
+        user, schemas.Token.model_validate(token), enums.Permission.DELETE
     ):
         raise ForbiddenActionError()
 
@@ -112,7 +112,7 @@ async def update(user: schemas.User, id: int, data: schemas.TokenPatch) -> schem
     token = await models.Token.get(id=id)
 
     if not has_permission(
-        user, schemas.User.model_validate(token), enums.Permission.UPDATE
+        user, schemas.Token.model_validate(token), enums.Permission.UPDATE
     ):
         raise ForbiddenActionError()
 

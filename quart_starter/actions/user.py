@@ -1,72 +1,72 @@
-import base64
-import hashlib
-from typing import List
-
-import bcrypt
+from typing import List, Union
 
 from quart_starter import enums, models, schemas
-from quart_starter.lib.error import ActionError
+from quart_starter.lib.error import ActionError, ForbiddenActionError
 
 from .helpers import conditional_set, handle_orm_errors
 
 
 def has_permission(
     user: schemas.User,
-    user_id: int,
-    user_role: enums.UserRole,
+    obj: Union[schemas.User, None],
     permission: enums.Permission,
 ) -> bool:
     if permission == enums.Permission.CREATE:
         return True
 
     if permission == enums.Permission.READ:
-        if user_role == enums.UserRole.ADMIN:
+        if user.role == enums.UserRole.ADMIN:
             return True
-        return user_id == user.id
+        return user.id == obj.id
 
     if permission == enums.Permission.UPDATE:
-        if user_role == enums.UserRole.ADMIN:
+        if user.role == enums.UserRole.ADMIN:
             return True
-        return user_id == user.id
+        return user.id == obj.id
 
     if permission == enums.Permission.DELETE:
-        if user_role == enums.UserRole.ADMIN:
+        if user.role == enums.UserRole.ADMIN:
             return True
 
     return False
 
 
-def get_gravatar(email):
-    md5_hash = hashlib.md5(email.encode()).hexdigest()
-    return f"https://www.gravatar.com/avatar/{md5_hash}?s=100&d=identicon"
-
-
 @handle_orm_errors
 async def get(
+    user: schemas.User,
     id: int = None,
     email: str = None,
     auth_id: str = None,
     resolves: List[schemas.UserResolve] = None,
 ) -> schemas.User:
-    user = None
+    obj = None
     if id:
-        user = await models.User.get(id=id)
+        obj = await models.User.get(id=id)
     elif email:
-        user = await models.User.get(email=email)
+        obj = await models.User.get(email=email)
     elif auth_id:
-        user = await models.User.get(auth_id=auth_id)
+        obj = await models.User.get(auth_id=auth_id)
     else:
         raise ActionError("missing lookup key", type="not_found")
 
-    if resolves:
-        await user.fetch_related(*resolves)
+    if not has_permission(
+        user, schemas.User.model_validate(obj), enums.Permission.READ
+    ):
+        raise ForbiddenActionError()
 
-    return schemas.User.model_validate(user)
+    if resolves:
+        await obj.fetch_related(*resolves)
+
+    return schemas.User.model_validate(obj)
 
 
 @handle_orm_errors
-async def query(q: schemas.UserQuery) -> schemas.UserResultSet:
-    queryset, pagination = await q.queryset(models.User)
+async def query(user: schemas.User, q: schemas.UserQuery) -> schemas.UserResultSet:
+    qs = models.User.all()
+    if user.role != enums.UserRole.ADMIN:
+        qs = qs.filter(id=user.id)
+
+    queryset, pagination = await q.queryset(qs)
 
     return schemas.UserResultSet(
         pagination=pagination,
@@ -75,65 +75,55 @@ async def query(q: schemas.UserQuery) -> schemas.UserResultSet:
 
 
 @handle_orm_errors
-async def create(data: schemas.UserCreate) -> schemas.User:
-    gravatar = get_gravatar(data.email)
+async def create(user: schemas.User, data: schemas.UserCreate) -> schemas.User:
+    if not has_permission(user, None, enums.Permission.CREATE):
+        raise ForbiddenActionError()
 
-    user = await models.User.create(
-        name=data.name,
-        email=data.email,
-        picture=gravatar,
-        role=enums.UserRole.USER,
+    gravatar = schemas.User.get_gravatar(data.email)
+
+    obj = await models.User.create(
+        name=data.name, email=data.email, picture=gravatar, role=enums.UserRole.USER
     )
 
     if data.password:
-        await set_password(user.id, data.password)
+        obj.set_password(data.password)
+        obj.save()
 
-    return schemas.User.model_validate(user)
-
-
-@handle_orm_errors
-async def delete(id: int) -> None:
-    user = await models.User.get(id=id)
-    await user.delete()
+    return schemas.User.model_validate(obj)
 
 
 @handle_orm_errors
-async def update(id: int, data: schemas.UserPatch) -> schemas.User:
-    user = await models.User.get(id=id)
+async def delete(user: schemas.User, id: int) -> None:
+    obj = await models.User.get(id=id)
 
-    conditional_set(user, "name", data.name)
-    conditional_set(user, "email", data.email)
-    conditional_set(user, "picture", data.picture)
+    if not has_permission(
+        user, schemas.User.model_validate(obj), enums.Permission.DELETE
+    ):
+        raise ForbiddenActionError()
 
-    await user.save()
-
-    return schemas.User.model_validate(user)
+    await obj.delete()
 
 
 @handle_orm_errors
-async def set_password(id: int, password: str) -> None:
-    user = await models.User.get(id=id)
+async def update(user: schemas.User, id: int, data: schemas.UserPatch) -> schemas.User:
+    obj = await models.User.get(id=id)
 
-    user.hashed_password = bcrypt.hashpw(
-        base64.b64encode(hashlib.sha256(password.encode("utf-8")).digest()),
-        bcrypt.gensalt(),
-    )
-    await user.save()
+    if not has_permission(
+        user, schemas.User.model_validate(obj), enums.Permission.UPDATE
+    ):
+        raise ForbiddenActionError()
+
+    conditional_set(obj, "name", data.name)
+    conditional_set(obj, "email", data.email)
+    conditional_set(obj, "picture", data.picture)
+
+    await obj.save()
+
+    return schemas.User.model_validate(obj)
 
 
 @handle_orm_errors
 async def check_password(id: int, password: str) -> bool:
     user = await models.User.get(id=id)
 
-    return user.hashed_password and bcrypt.checkpw(
-        base64.b64encode(hashlib.sha256(password.encode("utf-8")).digest()),
-        user.hashed_password,
-    )
-
-
-@handle_orm_errors
-async def set_role(id: int, role: enums.UserRole) -> None:
-    user = await models.User.get(id=id)
-    user.role = role
-
-    await user.save()
+    return user.check_password(password)

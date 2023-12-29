@@ -4,7 +4,7 @@
 {% block content %}
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('.index') }}">Blog</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('.index', status='published') }}">Blog</a></li>
         <li class="breadcrumb-item active" aria-current="page">Library</li>
     </ol>
 </nav>

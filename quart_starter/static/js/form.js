@@ -47,10 +47,13 @@ function defaultFormCallback(form, data) {
         target = '_self';
     }
 
-    console.log(rInput, target);
-
     if (rInput && rInput.value) {
-        const url = rInput.value.replace('{ID}', data['id']);
+        const regex = /%7B-.*?-%7D/g;
+        let url = rInput.value.replace('{ID}', data['id']);
+        let matches = url.match(regex);
+        matches.forEach(s => {
+            url = url.replace(s, data[s.substring(4, s.length - 4)])
+        });
 
         if (target == '_top') {
             window.location.replace(url);

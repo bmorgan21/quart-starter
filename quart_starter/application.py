@@ -24,7 +24,7 @@ from werkzeug.exceptions import NotFound
 from quart_starter import schemas, settings
 from quart_starter.command import register_commands
 from quart_starter.lib.auth import AuthUser, Forbidden
-from quart_starter.lib.error import ActionError
+from quart_starter.lib.error import ActionError, ForbiddenActionError
 from quart_starter.lib.middleware import ProxyMiddleware
 from quart_starter.lib.pubsub import RedisPubSubManager
 from quart_starter.lib.websocket import WebsocketManager
@@ -197,6 +197,7 @@ def create_app(**config_overrides):
         )
 
     @app.errorhandler(Forbidden)
+    @app.errorhandler(ForbiddenActionError)
     async def handle_response_forbidden_error(error):
         if has_request_context() and request.accept_mimetypes.accept_html:
             return await render_template("403.html")

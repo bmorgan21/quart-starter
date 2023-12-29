@@ -1,3 +1,7 @@
+import base64
+import hashlib
+
+import bcrypt
 from tortoise import Model, fields
 
 from quart_starter import enums
@@ -18,3 +22,15 @@ class User(Model):
 
     def __str__(self):
         return f"User {self.id}: {self.status}"
+
+    def set_password(self, password):
+        self.hashed_password = bcrypt.hashpw(
+            base64.b64encode(hashlib.sha256(password.encode("utf-8")).digest()),
+            bcrypt.gensalt(),
+        )
+
+    def check_password(self, password):
+        return self.hashed_password and bcrypt.checkpw(
+            base64.b64encode(hashlib.sha256(password.encode("utf-8")).digest()),
+            self.hashed_password,
+        )

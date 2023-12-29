@@ -1,6 +1,9 @@
+import hashlib
 from typing import List, Optional, Union
 
 from pydantic import HttpUrl, ValidationInfo, field_validator
+from unique_names_generator import get_random_name
+from unique_names_generator.data import ADJECTIVES, ANIMALS
 
 from quart_starter import enums
 
@@ -57,6 +60,40 @@ class User(BaseModel):
     email: str
     status: str
     picture: Optional[PICTURE_VALIDATOR]
+
+    @classmethod
+    def admin_user(cls):
+        email = "admin@example.com"
+
+        return cls(
+            id=0,
+            auth_id=None,
+            name="Admin User",
+            role=enums.UserRole.ADMIN,
+            email=email,
+            status=enums.UserStatus.ACTIVE,
+            picture=cls.get_gravatar(email),
+        )
+
+    @classmethod
+    def anonymous_user(cls):
+        name = get_random_name(combo=[ADJECTIVES, ANIMALS], style="lowercase")
+        email = name.replace(" ", ".") + "@gmail.com"
+
+        return cls(
+            id=0,
+            auth_id=None,
+            name=name,
+            role=enums.UserRole.USER,
+            email=email,
+            status=enums.UserStatus.PENDING,
+            picture=cls.get_gravatar(email),
+        )
+
+    @classmethod
+    def get_gravatar(cls, email):
+        md5_hash = hashlib.md5(email.encode()).hexdigest()
+        return f"https://www.gravatar.com/avatar/{md5_hash}?s=100&d=identicon"
 
 
 class UserFilterField(enums.EnumStr):

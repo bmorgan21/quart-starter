@@ -91,7 +91,8 @@ class PostQueryStringSort(enums.EnumStr):
 class PostQueryString(BaseModel):
     sort: Optional[PostQueryStringSort] = PostQueryStringSort.PUBLISHED_AT_DESC
     id__in: Optional[List[int]] = None
-    status: Optional[str] = None
+    status: Optional[enums.PostStatus] = None
+    author_id: Optional[int] = None
     pp: Optional[int] = 10
     p: Optional[int] = 1
     resolves: Optional[List[PostResolve]] = []
@@ -105,6 +106,11 @@ class PostQueryString(BaseModel):
 
         if self.status:
             filters.append(PostFilter(field=PostFilterField.STATUS, value=self.status))
+
+        if self.author_id:
+            filters.append(
+                PostFilter(field=PostFilterField.AUTHOR_ID, value=self.author_id)
+            )
 
         resolves = resolves or self.resolves
         sorts = self.sort.split("__")

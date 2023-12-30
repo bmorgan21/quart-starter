@@ -57,20 +57,20 @@ def register_blueprints(app):
     from quart_starter.blueprints.api import blueprint as api_blueprint
     from quart_starter.blueprints.auth import blueprint as auth_blueprint
     from quart_starter.blueprints.auth_google import blueprint as auth_google_blueprint
+    from quart_starter.blueprints.chat import blueprint as chat_blueprint
     from quart_starter.blueprints.marketing import blueprint as marketing_blueprint
     from quart_starter.blueprints.post import blueprint as post_blueprint
     from quart_starter.blueprints.user import blueprint as user_blueprint
-    from quart_starter.blueprints.ws import blueprint as ws_blueprint
 
     # pylint: enable=import-outside-toplevel
 
     app.register_blueprint(api_blueprint, url_prefix="/api")
     app.register_blueprint(auth_blueprint, url_prefix="/auth")
     app.register_blueprint(auth_google_blueprint, url_prefix="/auth/google")
+    app.register_blueprint(chat_blueprint, url_prefix="/chat")
     app.register_blueprint(marketing_blueprint)
     app.register_blueprint(post_blueprint, url_prefix="/post")
     app.register_blueprint(user_blueprint, url_prefix="/user")
-    app.register_blueprint(ws_blueprint, url_prefix="/ws")
 
 
 class MyQuartAuth(QuartAuth):

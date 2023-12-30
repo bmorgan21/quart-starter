@@ -1,8 +1,8 @@
 function initWS(url, onmessageCallback) {
-    let ws = null;
+    var ws;
 
     function connect() {
-        const ws = new WebSocket(url);
+        ws = new WebSocket(url);
 
         ws.onmessage = function (e) {
             onmessageCallback(event.data);
@@ -27,7 +27,7 @@ function initWS(url, onmessageCallback) {
         return ws.send(message);
     }
 
-    ws = connect();
+    connect();
 
     return { send: send };
 }

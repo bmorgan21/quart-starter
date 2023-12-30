@@ -23,13 +23,11 @@ class MessageManager:
 
         await self.send_message(
             "connected",
-            f"User {self.user.id} connected to room - {self.channel_id}",
-            data={
-                "id": self.user.id,
-                "name": self.user.name,
-                "picture": str(self.user.picture) if self.user.picture else None,
-            },
+            f"User {self.user.id} connected to channel - {self.channel_id}",
+            data=json.loads(schemas.UserPublic.model_dump_json(self.user)),
         )
+
+        return self
 
     async def __aexit__(self, exc_type, exc_val, traceback):
         if isinstance(exc_val, asyncio.CancelledError):
@@ -40,6 +38,7 @@ class MessageManager:
             await self.send_message(
                 "disconnected",
                 f"User {self.user.id} disconnected from channel - {self.channel_id}",
+                data=json.loads(schemas.UserPublic.model_dump_json(self.user)),
             )
 
     def __await__(self):

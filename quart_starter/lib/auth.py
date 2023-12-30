@@ -36,11 +36,12 @@ class AuthUser(_AuthUser):
                     raise
 
                 try:
-                    u = json.loads(session[ANONYMOUS_USER])
-                    self._user = schemas.User.model_validate(u)
+                    self._user = schemas.User.model_validate(
+                        json.loads(session[ANONYMOUS_USER])
+                    )
                 except (KeyError, json.decoder.JSONDecodeError):
                     self._user = schemas.User.anonymous_user()
-                    session[ANONYMOUS_USER] = json.dumps(self._user.model_dump())
+                    session[ANONYMOUS_USER] = self._user.model_dump_json()
 
             self._resolved = True
 

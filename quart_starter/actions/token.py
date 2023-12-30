@@ -44,7 +44,7 @@ async def get(
     user: schemas.User,
     id: int = None,
     auth_id: int = None,
-    resolves: List[schemas.TokenResolve] = None,
+    options: schemas.TokenGetOptions = None,
 ) -> schemas.Post:
     token = None
     if id:
@@ -59,8 +59,9 @@ async def get(
     ):
         raise ForbiddenActionError()
 
-    if resolves:
-        await token.fetch_related(*resolves)
+    if options:
+        if options.resolves:
+            await token.fetch_related(*options.resolves)
 
     return schemas.Token.model_validate(token)
 

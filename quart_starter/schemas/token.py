@@ -8,7 +8,7 @@ from quart_starter import enums
 from .helpers import BaseModel, parse_list, remove_queryset
 from .pagination import PageInfo, Pagination
 from .query import Query
-from .user import User
+from .user import UserPublic
 
 TYPE_VALIDATOR = enums.TokenType
 NAME_VALIDATOR = Annotated[str, StringConstraints(min_length=1, max_length=32)]
@@ -35,7 +35,7 @@ class Token(BaseModel):
     type: str
     name: str
     user_id: int
-    user: Optional[User]
+    user: Optional[UserPublic]
 
     _remove_queryset = field_validator("user", mode="before")(remove_queryset)
 
@@ -56,6 +56,12 @@ class TokenSort(enums.EnumStr):
 
 class TokenResolve(enums.EnumStr):
     USER = "user"
+
+
+class TokenGetOptions(BaseModel):
+    resolves: Optional[List[TokenResolve]] = []
+
+    _parse_list = field_validator("resolves", mode="before")(parse_list)
 
 
 class TokenQuery(BaseModel, Query):

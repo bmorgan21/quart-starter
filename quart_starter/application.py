@@ -125,7 +125,7 @@ def create_app(**config_overrides):
                 schemas.Errors(
                     errors=[
                         schemas.Error(
-                            loc=".".join(x.get("loc")),
+                            loc=".".join([str(y) for y in x.get("loc", [])]),
                             type=x.get("type"),
                             msg=x["msg"],
                             input=x.get("input"),
@@ -149,7 +149,7 @@ def create_app(**config_overrides):
                 schemas.Errors(
                     errors=[
                         schemas.Error(
-                            loc=".".join(x.get("loc")),
+                            loc=".".join([str(y) for y in x.get("loc", [])]),
                             type=x.get("type"),
                             msg=x["msg"],
                             input=x.get("input"),

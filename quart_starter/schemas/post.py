@@ -9,7 +9,7 @@ from quart_starter import enums
 from .helpers import NOTSET, BaseModel, parse_list, remove_queryset
 from .pagination import PageInfo, Pagination
 from .query import Query
-from .user import User
+from .user import UserPublic
 
 TITLE_VALIDATOR = Annotated[str, StringConstraints(min_length=5)]
 CONTENT_VALIDATOR = str
@@ -39,7 +39,7 @@ class Post(BaseModel):
     viewed: int
 
     author_id: int
-    author: Optional[User]
+    author: Optional[UserPublic]
 
     _remove_queryset = field_validator("author", mode="before")(remove_queryset)
 
@@ -68,6 +68,12 @@ class PostSort(enums.EnumStr):
 
 class PostResolve(enums.EnumStr):
     AUTHOR = "author"
+
+
+class PostGetOptions(BaseModel):
+    resolves: Optional[List[PostResolve]] = []
+
+    _parse_list = field_validator("resolves", mode="before")(parse_list)
 
 
 class PostQuery(BaseModel, Query):

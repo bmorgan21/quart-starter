@@ -2,6 +2,8 @@ from quart import Blueprint, current_app
 from quart_auth import login_user
 from quart_schema import validate_request, validate_response
 from tortoise.transactions import atomic
+from unique_names_generator import get_random_name
+from unique_names_generator.data import ADJECTIVES, ANIMALS
 
 from quart_starter import actions, enums, schemas
 from quart_starter.lib.auth import AuthUser
@@ -43,9 +45,11 @@ async def token_create(data: schemas.AuthTokenCreate) -> schemas.TokenCreateSucc
 @validate_response(schemas.User, 200)
 @atomic()
 async def user_create(data: schemas.AuthUserCreate) -> schemas.User:
+    name = get_random_name(combo=[ADJECTIVES, ANIMALS], style="lowercase")
+
     user = await actions.user.create(
         schemas.User.system_user(),
-        schemas.UserCreate(name=data.email, email=data.email, password=data.password),
+        schemas.UserCreate(name=name, email=data.email, password=data.password),
     )
 
     token = await actions.token.create(

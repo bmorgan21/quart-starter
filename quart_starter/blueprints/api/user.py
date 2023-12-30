@@ -18,11 +18,17 @@ async def create(data: schemas.UserCreate) -> schemas.User:
 
 
 @blueprint.get("/<int:id>")
+@validate_querystring(schemas.UserGetOptions)
 @validate_response(schemas.User, 200)
 @atomic()
 @login_required
-async def read(id: int) -> schemas.User:
-    return await actions.user.get(await current_user.get_user(), id=id), 200
+async def read(id: int, query_args: schemas.UserGetOptions) -> schemas.User:
+    return (
+        await actions.user.get(
+            await current_user.get_user(), id=id, options=query_args
+        ),
+        200,
+    )
 
 
 @blueprint.get("")

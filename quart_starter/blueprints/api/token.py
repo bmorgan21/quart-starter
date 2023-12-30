@@ -23,11 +23,17 @@ async def create(data: schemas.TokenCreate) -> schemas.TokenCreateSuccess:
 
 
 @blueprint.get("/<int:id>")
+@validate_querystring(schemas.TokenGetOptions)
 @validate_response(schemas.Token, 200)
 @atomic()
 @login_required
-async def read(id: int) -> schemas.Token:
-    return await actions.token.get(await current_user.get_user(), id=id), 200
+async def read(id: int, query_args: schemas.TokenGetOptions) -> schemas.Token:
+    return (
+        await actions.token.get(
+            await current_user.get_user(), id=id, options=query_args
+        ),
+        200,
+    )
 
 
 @blueprint.get("")

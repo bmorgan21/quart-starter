@@ -42,7 +42,7 @@ def has_permission(
 
 @handle_orm_errors
 async def get(
-    user: schemas.User, id: int = None, resolves: List[schemas.PostResolve] = None
+    user: schemas.User, id: int = None, options: schemas.PostGetOptions = None
 ) -> schemas.Post:
     post = None
     if id:
@@ -55,8 +55,9 @@ async def get(
     ):
         raise ForbiddenActionError()
 
-    if resolves:
-        await post.fetch_related(*resolves)
+    if options:
+        if options.resolves:
+            await post.fetch_related(*options.resolves)
 
     return schemas.Post.model_validate(post)
 

@@ -34,6 +34,12 @@ class UserPatch(BaseModel):
     picture: Optional[PICTURE_VALIDATOR] = NOTSET
 
 
+class UserPublic(BaseModel):
+    id: int
+    name: str
+    picture: Optional[PICTURE_VALIDATOR]
+
+
 class User(BaseModel):
     id: int
     role: str
@@ -97,6 +103,12 @@ class UserSort(enums.EnumStr):
 
 class UserResolve(enums.EnumStr):
     pass
+
+
+class UserGetOptions(BaseModel):
+    resolves: Optional[List[UserResolve]] = []
+
+    _parse_list = field_validator("resolves", mode="before")(parse_list)
 
 
 class UserQuery(BaseModel, Query):

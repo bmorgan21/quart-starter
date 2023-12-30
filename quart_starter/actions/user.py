@@ -36,7 +36,7 @@ async def get(
     user: schemas.User,
     id: int = None,
     email: str = None,
-    resolves: List[schemas.UserResolve] = None,
+    options: schemas.UserGetOptions = None,
 ) -> schemas.User:
     obj = None
     if id:
@@ -51,8 +51,9 @@ async def get(
     ):
         raise ForbiddenActionError()
 
-    if resolves:
-        await obj.fetch_related(*resolves)
+    if options:
+        if options.resolves:
+            await obj.fetch_related(*options.resolves)
 
     return schemas.User.model_validate(obj)
 

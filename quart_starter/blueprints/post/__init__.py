@@ -35,7 +35,9 @@ async def index(query_args: schemas.PostQueryString):
 @blueprint.route("/<int:id>")
 async def view(id: int):
     user = await current_user.get_user()
-    post = await actions.post.get(user, id=id, resolves=["author"])
+    post = await actions.post.get(
+        user, id=id, options=schemas.PostGetOptions(resolves=["author"])
+    )
 
     await actions.post.update_viewed(id)
     post.viewed += 1  # make sure the user sees their view

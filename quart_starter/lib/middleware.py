@@ -1,6 +1,3 @@
-from quart import has_request_context
-
-
 class ProxyMiddleware:
     def __init__(self, app):
         self.app = app

@@ -115,7 +115,7 @@ def create_app(**config_overrides):
             setattr(func, QUART_SCHEMA_OPERATION_ID_ATTRIBUTE, operation_id)
 
             d = getattr(func, "_quart_schema_response_schemas")
-            d[400] = (schemas.Errors, None)
+            d[422] = (schemas.Errors, None)
             d[404] = (schemas.Error, None)
 
     @app.errorhandler(RequestSchemaValidationError)
@@ -133,13 +133,13 @@ def create_app(**config_overrides):
                         for x in error.validation_error.errors()
                     ]
                 ),
-                400,
+                422,
             )
         return (
             schemas.Errors(
                 errors=[schemas.Error(loc="page", type="VALIDATION", msg=str(error))]
             ),
-            400,
+            422,
         )
 
     @app.errorhandler(ResponseSchemaValidationError)
@@ -157,7 +157,7 @@ def create_app(**config_overrides):
                         for x in error.validation_error.errors()
                     ]
                 ),
-                400,
+                422,
             )
 
         return (
@@ -168,7 +168,7 @@ def create_app(**config_overrides):
                     )
                 ]
             ),
-            400,
+            422,
         )
 
     @app.errorhandler(ActionError)
@@ -183,7 +183,7 @@ def create_app(**config_overrides):
             schemas.Errors(
                 errors=[schemas.Error(loc=error.loc, type=error.type, msg=str(error))]
             ),
-            400,
+            422,
         )
 
     @app.errorhandler(Unauthorized)

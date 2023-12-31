@@ -10,6 +10,7 @@ from quart_schema import validate_querystring
 
 from quart_starter import actions, enums, schemas
 from quart_starter.lib.auth import Forbidden
+from quart_starter.lib.error import ActionError
 from quart_starter.lib.message_manager import MessageManager
 
 blueprint = Blueprint("post", __name__, template_folder="templates")
@@ -39,7 +40,14 @@ async def view(id: int):
         user, id=id, options=schemas.PostGetOptions(resolves=["author"])
     )
 
-    await actions.post.update_viewed(id)
+    try:
+        post_like = await actions.post.get_like(user, id)
+    except ActionError as error:
+        if error.type != "action_error.does_not_exist":
+            raise
+        post_like = None
+
+    await actions.post.view(user, id)
     post.viewed += 1  # make sure the user sees their view
 
     mm = MessageManager(user, f"post-{id}")
@@ -47,7 +55,9 @@ async def view(id: int):
 
     can_edit = actions.post.has_permission(user, post, enums.Permission.UPDATE)
 
-    return await render_template("post/view.html", post=post, can_edit=can_edit)
+    return await render_template(
+        "post/view.html", post=post, post_like=post_like, can_edit=can_edit
+    )
 
 
 @blueprint.route("/create/")

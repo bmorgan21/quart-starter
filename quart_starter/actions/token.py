@@ -1,5 +1,5 @@
 import uuid
-from typing import List, Union
+from typing import Union
 
 from quart_starter import enums, models, schemas
 from quart_starter.lib.error import ActionError, ForbiddenActionError

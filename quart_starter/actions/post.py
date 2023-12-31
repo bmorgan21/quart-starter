@@ -1,5 +1,6 @@
-from typing import List, Union
+from typing import Union
 
+from tortoise.exceptions import DoesNotExist
 from tortoise.expressions import F, Q
 
 from quart_starter import enums, models, schemas
@@ -124,5 +125,45 @@ async def update(user: schemas.User, id: int, data: schemas.PostPatch) -> schema
 
 
 @handle_orm_errors
-async def update_viewed(id: int) -> None:
+async def view(_: schemas.User, id: int) -> None:
     await models.Post.filter(id=id).update(viewed=F("viewed") + 1)
+
+
+@handle_orm_errors
+async def get_like(user: schemas.User, id: int) -> schemas.PostLike:
+    post_like = await models.PostLike.get(post_id=id, user_id=user.id)
+    return schemas.PostLike.model_validate(post_like)
+
+
+@handle_orm_errors
+async def like(user: schemas.User, id: int) -> schemas.PostLike:
+    post = await models.Post.get(id=id)
+
+    if not has_permission(
+        user, schemas.Post.model_validate(post), enums.Permission.READ
+    ):
+        raise ForbiddenActionError()
+
+    try:
+        post_like = await models.PostLike.get(post_id=id, user_id=user.id)
+    except DoesNotExist:
+        post_like = await models.PostLike.create(post_id=id, user_id=user.id)
+
+    return schemas.PostLike.model_validate(post_like)
+
+
+@handle_orm_errors
+async def unlike(user: schemas.User, id: int) -> None:
+    post = await models.Post.get(id=id)
+
+    if not has_permission(
+        user, schemas.Post.model_validate(post), enums.Permission.READ
+    ):
+        raise ForbiddenActionError()
+
+    try:
+        post_like = await models.PostLike.get(post_id=id, user_id=user.id)
+    except DoesNotExist:
+        pass
+    else:
+        await post_like.delete()

@@ -59,3 +59,21 @@ async def delete(id: int) -> schemas.DeleteConfirmed:
     await actions.post.delete(await current_user.get_user(), id)
 
     return schemas.DeleteConfirmed(id=id)
+
+
+@blueprint.put("/<int:id>/like")
+@validate_response(schemas.PostLike, 200)
+@atomic()
+@login_required
+async def like(id: int) -> schemas.PostLike:
+    return await actions.post.like(await current_user.get_user(), id)
+
+
+@blueprint.delete("/<int:id>/like")
+@validate_response(schemas.DeleteConfirmed, 200)
+@atomic()
+@login_required
+async def unlike(id: int) -> schemas.PostLike:
+    await actions.post.unlike(await current_user.get_user(), id)
+
+    return schemas.DeleteConfirmed(id=id)

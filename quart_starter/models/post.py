@@ -14,7 +14,7 @@ class Post(TimestampMixin, Model):
     _status = fields.CharEnumField(
         enums.PostStatus,
         max_length=16,
-        default=enums.PostStatus.PENDING,
+        default=enums.PostStatus.DRAFT,
         source_field="status",
     )
     content = fields.TextField()
@@ -36,3 +36,17 @@ class Post(TimestampMixin, Model):
                 self.published_at = dt.datetime.now(dt.timezone.utc)
             else:
                 self.published_at = None
+
+
+class PostLike(TimestampMixin, Model):
+    id = fields.IntField(pk=True)
+
+    post: fields.ForeignKeyRelation[Post] = fields.ForeignKeyField(
+        "models.Post", related_name="likes"
+    )
+    user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField(
+        "models.User", related_name="likes"
+    )
+
+    class Meta:
+        unique_together = ("post_id", "user_id")

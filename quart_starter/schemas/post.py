@@ -19,7 +19,7 @@ STATUS_VALIDATOR = enums.PostStatus
 class PostCreate(BaseModel):
     title: TITLE_VALIDATOR
     content: CONTENT_VALIDATOR
-    status: STATUS_VALIDATOR = enums.PostStatus.PENDING
+    status: STATUS_VALIDATOR = enums.PostStatus.DRAFT
 
 
 class PostPatch(BaseModel):
@@ -128,3 +128,15 @@ class PostQueryString(BaseModel):
 class PostResultSet(BaseModel):
     pagination: Pagination
     posts: List[Post]
+
+
+class PostLike(BaseModel):
+    id: int
+
+    post_id: int
+    post: Optional[Post]
+
+    user_id: int
+    user: Optional[UserPublic]
+
+    _remove_queryset = field_validator("post", "user", mode="before")(remove_queryset)

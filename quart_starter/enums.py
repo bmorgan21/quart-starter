@@ -7,7 +7,7 @@ class EnumStr(str, Enum):
 
 
 class PostStatus(EnumStr):
-    PENDING = "pending"
+    DRAFT = "draft"
     PUBLISHED = "published"
 
 

@@ -14,11 +14,11 @@ set -e
 # 
 # 1. download and run in one step
 #
-#   $ curl -fsSL https://github.com/bmorgan21/quart-starter/start-project.sh | sh -s <project name>
+#   $ curl -fsSL https://raw.githubusercontent.com/bmorgan21/quart-starter/main/start-project.sh | sh -s <project name>
 #
 # 2. download and run locally
 #
-#   $ curl -fsSL https://github.com/bmorgan21/quart-starter/start-project.sh -o start-project.sh
+#   $ curl -fsSL https://raw.githubusercontent.com/bmorgan21/quart-starter/main/start-project.sh -o start-project.sh
 #   $ sh start-project.sh <project name>
 #
 PROJECT_NAME="$1"

@@ -11,6 +11,20 @@ Before any of the commands will work, you MUST run `init` in each terminal.  Aft
 
 # Getting Started
 
+Initialize the virtual environment
+
+`init`
+
+Upgrade the DB schema
+
+`aerich upgrade`
+
+Start the server
+
+`quart start`
+
+# Resetting the DB
+
 To initialize the configuration files for Tortoise ORM you must run the following command.  This command only needs to be run if the migrations directory is removed in order to start over again.
 
 `aerich init -t quart_starter.settings.TORTOISE_ORM`

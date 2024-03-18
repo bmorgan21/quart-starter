@@ -32,7 +32,7 @@ class AuthUser(_AuthUser):
                 self._user = await actions.user.get(system_user, id=self._token.user_id)
                 session.pop(ANONYMOUS_USER, None)
             except ActionError as error:
-                if error.type != "action_error.not_found":
+                if error.type not in ("action_error.not_found", "action_error.does_not_exist"):
                     raise
 
                 try:

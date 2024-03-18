@@ -38,7 +38,7 @@ Install Docker and Add Permissions
 Download code
 
     $ mkdir code && cd code
-    $ git clone https://github.com/bmorgan21/score-keeper.git
+    $ git clone https://github.com/bmorgan21/quart-starter.git
 
 Reboot Nightly
 
@@ -52,7 +52,7 @@ Start the full app
 Create Deployment Crontab
 
     $ crontab -e
-    */5 * * * * cd code/score-keeper && bash deploy.sh full 2> /home/admin/error.txt`
+    */5 * * * * cd code/quart-starter && bash deploy.sh full 2> /home/admin/error.txt`
 
 # Getting Started
 

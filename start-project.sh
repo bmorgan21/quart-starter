@@ -33,4 +33,5 @@ find quart-starter-tmp -type f -exec sed -i "s/quart_starter/$MODULE_NAME/g" {} 
 find quart-starter-tmp -type f -exec sed -i "s/quart-starter/$FOLDER_NAME/g" {} +
 rm -f quart-starter-tmp/start-project.sh
 mv quart-starter-tmp/quart_starter "quart-starter-tmp/$MODULE_NAME"
+rm -rf quart-starter-tmp/.git
 mv quart-starter-tmp "$FOLDER_NAME"

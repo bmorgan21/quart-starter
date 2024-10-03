@@ -22,7 +22,7 @@ set -e
 #   $ sh start-project.sh <project name>
 #
 PROJECT_NAME="$1"
-PROJECT_NAME_LOWER=`echo "$PROJECT_NAME" | sed -e 's/\(.*\)/\L\1/'`
+PROJECT_NAME_LOWER=`echo "$PROJECT_NAME" | tr '[:upper:]' '[:lower:]'`
 FOLDER_NAME=`echo "$PROJECT_NAME_LOWER" | sed -e 's/ /-/'`
 MODULE_NAME=`echo "$PROJECT_NAME_LOWER" | sed -e 's/ /_/'`
 echo "Setting up $PROJECT_NAME..."

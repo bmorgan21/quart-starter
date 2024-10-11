@@ -45,7 +45,7 @@ async def get(
     id: int = None,
     auth_id: int = None,
     options: schemas.TokenGetOptions = None,
-) -> schemas.Post:
+) -> schemas.Token:
     token = None
     if id:
         token = await models.Token.get(id=id)
@@ -109,7 +109,7 @@ async def delete(user: schemas.User, id: int) -> None:
 
 
 @handle_orm_errors
-async def update(user: schemas.User, id: int, data: schemas.TokenPatch) -> schemas.Post:
+async def update(user: schemas.User, id: int, data: schemas.TokenPatch) -> schemas.Token:
     token = await models.Token.get(id=id)
 
     if not has_permission(

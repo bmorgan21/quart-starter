@@ -1,6 +1,8 @@
 from typing import Union
 
-from quart_starter import enums, models, schemas
+from tortoise.exceptions import DoesNotExist
+
+from quart_starter import enums, models, schemas, settings
 from quart_starter.lib.error import ActionError, ForbiddenActionError
 
 from .helpers import conditional_set, handle_orm_errors
@@ -29,6 +31,21 @@ def has_permission(
             return True
 
     return False
+
+
+@handle_orm_errors
+async def system_user() -> schemas.User:
+    try:
+        user = await models.User.get(email=settings.SYSTEM_USER_EMAIL)
+    except DoesNotExist:
+        user = await models.User.create(
+            name="System User",
+            email=settings.SYSTEM_USER_EMAIL,
+            role=enums.UserRole.SYSTEM,
+        )
+        await user.save()
+
+    return user
 
 
 @handle_orm_errors
@@ -124,4 +141,5 @@ async def update(user: schemas.User, id: int, data: schemas.UserPatch) -> schema
 async def check_password(id: int, password: str) -> bool:
     user = await models.User.get(id=id)
 
+    return user.check_password(password)
     return user.check_password(password)

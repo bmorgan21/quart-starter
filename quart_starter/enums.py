@@ -12,6 +12,7 @@ class PostStatus(EnumStr):
 
 
 class UserRole(EnumStr):
+    SYSTEM = "system"
     ADMIN = "admin"
     USER = "user"
 

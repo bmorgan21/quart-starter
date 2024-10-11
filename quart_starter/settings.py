@@ -29,6 +29,8 @@ DB_PORT = os.environ.get("DB_PORT", -1)
 
 STATIC_VERSION = os.environ.get("STATIC_VERSION")
 
+SYSTEM_USER_EMAIL = "system@email.com"
+
 QUART_AUTH_COOKIE_SECURE = strtobool(os.environ.get("QUART_AUTH_COOKIE_SECURE", "True"))
 QUART_SCHEMA_CONVERT_CASING = strtobool(
     os.environ.get("QUART_SCHEMA_CONVERT_CASING", "False")

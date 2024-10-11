@@ -1,5 +1,6 @@
 {
     "recommendations": [
-        "lfs.vscode-emacs-friendly"
+        "lfs.vscode-emacs-friendly",
+        "cardinal90.multi-cursor-case-preserve"
     ]
 }

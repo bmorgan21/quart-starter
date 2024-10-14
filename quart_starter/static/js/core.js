@@ -41,6 +41,26 @@ methodLinks.forEach(link => {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             }
+        } else {
+            const DATA_PREFIX = 'x_';
+            var result = {};
+            Object.keys(link.dataset).forEach(k => {
+                if (k.startsWith(DATA_PREFIX)) {
+                    v = link.dataset[k];
+                    k = k.substring(DATA_PREFIX.length);
+
+                    if (v == "null") {
+                        v = null;
+                    }
+                    result[k] = v;
+                }
+            });
+
+            fetch_data['body'] = JSON.stringify(result);
+            fetch_data['headers'] = {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
         }
 
         fetch(link.href, fetch_data).then(response => {

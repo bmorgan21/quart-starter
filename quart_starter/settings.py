@@ -42,6 +42,8 @@ AUTH_LOGOUT_SUCCESS_ENDPOINT = os.environ.get(
     "AUTH_LOGOUT_SUCCESS_ENDPOINT", "marketing.index"
 )
 
+WEBHOOK_URL = "http://127.0.0.1:5000/event/webhook"
+
 TORTOISE_ORM_DEBUG_QUERY = False
 
 TORTOISE_ORM = {

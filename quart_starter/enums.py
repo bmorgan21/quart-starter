@@ -32,3 +32,9 @@ class Permission(EnumStr):
 class TokenType(EnumStr):
     WEB = "web"
     API = "api"
+
+
+class EventStatus(EnumStr):
+    QUEUED = "queued"
+    PROCESSED = "processed"
+    FAILED = "failed"

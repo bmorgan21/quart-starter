@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% import 'macros.html' as macros %}
+
+
+{% block content %}
+<div class="col-12">
+    <ul class="nav nav-underline mb-2">
+        <li class="nav-item">
+            <a class="nav-link {% if subtab == 'queued' %}active{% endif %}" aria-current="page"
+                href="{{ url_for('event.index', status='queued') }}">Queued</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if subtab == 'processed' %}active{% endif %}" aria-current="page"
+                href="{{ url_for('event.index', status='processed') }}">Processed</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if subtab == 'failed' %}active{% endif %}" aria-current="page"
+                href="{{ url_for('event.index', status='failed') }}">Failed</a>
+        </li>
+    </ul>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>NAME</th>
+                <th>STATUS</th>
+                <th>WORKER ID</th>
+                <th>NUM ATTEMPTS</th>
+                <th>NEXT ATTEMPT</th>
+                <th>RESPONSE CODE</th>
+                <th>RESPONSE TEXT</th>
+                <th>&nbsp;</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for event in resultset.events %}
+            <tr>
+                <td>{{ event.id }}</td>
+                <td>{{ event.name }}</td>
+                <td>{{ event.status }}</td>
+                <td>{{ event.worker_id }}</td>
+                <td>{{ event.num_attempts }}</td>
+                <td>{{ event.next_attempt_at|ago }}</td>
+                <td>{{ event.response_code }}</td>
+                <td>{{ event.response_text }}</td>
+                <td><a data-method="PATCH" href="{{ url_for('api.event.update', id=event.id) }}" data-x_status="queued"
+                        data-x_worker_id="null" data-x_num_attempts="0"
+                        data-x_next_attempt_at="{{ event.created_at }}">RESET</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="9">No Events Found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {{ macros.pagination(resultset.pagination.current_page, resultset.pagination.num_pages, relative_url_for) }}
+</div>
+{% endblock content %}

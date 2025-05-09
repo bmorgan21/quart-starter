@@ -28,9 +28,22 @@ MODULE_NAME=`echo "$PROJECT_NAME_LOWER" | sed -e 's/ /_/'`
 echo "Setting up $PROJECT_NAME..."
 
 git clone --depth=1 https://github.com/bmorgan21/quart-starter.git quart-starter-tmp
-find quart-starter-tmp -type f -exec sed -i "s/Quart Starter/$PROJECT_NAME/g" {} +
-find quart-starter-tmp -type f -exec sed -i "s/quart_starter/$MODULE_NAME/g" {} +
-find quart-starter-tmp -type f -exec sed -i "s/quart-starter/$FOLDER_NAME/g" {} +
+
+# Detect OS and adjust sed command accordingly
+if [ "$(uname)" = "Darwin" ]; then
+    SED_CMD="sed -i .bk"
+else
+    SED_CMD="sed -i"
+fi
+
+# Use file mimetype to filter only text files
+find quart-starter-tmp -type f -exec sh -c 'file --mime-type "$1" | grep -q "text/"' _ {} \; -exec $SED_CMD "s/Quart Starter/$PROJECT_NAME/g" {} +
+find . -name "*.bk" | xargs rm
+find quart-starter-tmp -type f -exec sh -c 'file --mime-type "$1" | grep -q "text/"' _ {} \; -exec $SED_CMD "s/quart_starter/$MODULE_NAME/g" {} +
+find . -name "*.bk" | xargs rm
+find quart-starter-tmp -type f -exec sh -c 'file --mime-type "$1" | grep -q "text/"' _ {} \; -exec $SED_CMD "s/quart-starter/$FOLDER_NAME/g" {} +
+find . -name "*.bk" | xargs rm
+
 rm -f quart-starter-tmp/start-project.sh
 mv quart-starter-tmp/quart_starter "quart-starter-tmp/$MODULE_NAME"
 rm -rf quart-starter-tmp/.git

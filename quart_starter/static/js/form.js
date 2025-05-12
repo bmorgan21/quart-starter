@@ -185,6 +185,30 @@ function ajaxFormBind(elem) {
     const forms = elem.querySelectorAll('form.ajax');
 
     forms.forEach(form => form.addEventListener('submit', event => { handleSubmit(event, defaultFormCallback) }));
+
+    function handleConditionalSelect(select) {
+        const form = select.closest('form');
+        if (form) {
+            var className = 'select-' + select.name + '-' + select.value;
+
+            form.querySelectorAll('.conditional-select').forEach(e => {
+                e.classList.add('d-none');
+            });
+
+            form.querySelectorAll('.conditional-select.' + className).forEach(e => {
+                e.classList.remove('d-none');
+            });
+        }
+
+    }
+    const selects = elem.querySelectorAll('select');
+    selects.forEach(select => {
+        select.addEventListener('change', event => {
+            handleConditionalSelect(event.target);
+        });
+        handleConditionalSelect(select);
+    });
+
 }
 
 if (bindList) {

@@ -1,4 +1,5 @@
 import datetime as dt
+import os
 import urllib.parse
 from uuid import uuid4
 
@@ -36,6 +37,20 @@ def relative_url_for(**params):
     query_args.update(params)
 
     return url_for(request.url_rule.endpoint, **request.view_args, **query_args)
+
+
+def static_url_for(filename):
+    """
+    Returns the URL for a static file, appending the static version if set.
+    """
+    if settings.STATIC_VERSION:
+        static_version = settings.STATIC_VERSION
+    else:
+        static_version = os.stat(
+            os.path.join("quart_starter/static", filename)
+        ).st_mtime
+
+    return url_for("static", filename=filename, v=static_version)
 
 
 def utc_to_local(value):
@@ -90,7 +105,7 @@ def create_app(**config_overrides):
 
     app.config.from_object(settings)
     app.config.update(config_overrides)
-    
+
     QuartSchema(app)
     auth_manager = MyQuartAuth(app)
     auth_manager.user_class = AuthUser
@@ -254,6 +269,10 @@ def create_app(**config_overrides):
 
     @app.context_processor
     def add_context():
-        return {"relative_url_for": relative_url_for, "uuid4": uuid4}
+        return {
+            "relative_url_for": relative_url_for,
+            "static_url_for": static_url_for,
+            "uuid4": uuid4,
+        }
 
     return app
